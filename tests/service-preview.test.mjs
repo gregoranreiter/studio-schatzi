@@ -148,12 +148,12 @@ test('hover title stays just below its headline after text reflow and stops meas
   const { columns, resize, resizeObservers, document } = createPreviewEnvironment();
   const { title, headline } = columns[1];
   const gap = () => title.offsetTop + parseFloat(title.style['--service-title-offset']) - headline.offsetTop - headline.offsetHeight;
-  assert.ok(gap() >= 30 && gap() <= 45, 'Leave a little breathing room beneath the headline');
+  assert.ok(gap() >= 20 && gap() <= 35, 'Leave a little breathing room beneath the headline');
 
   headline.offsetHeight += 90;
   title.offsetTop -= 60;
   resize();
-  assert.ok(gap() >= 30 && gap() <= 45, 'Keep the gap after wrapping or viewport changes');
+  assert.ok(gap() >= 20 && gap() <= 35, 'Keep the gap after wrapping or viewport changes');
   assert.ok(parseFloat(title.style['--service-title-offset']) < 0);
 
   headline.offsetHeight = 1000;

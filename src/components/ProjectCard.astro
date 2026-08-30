@@ -1,11 +1,11 @@
 ---
 import type { Project } from '../data/projects';
 
-interface Props { project: Project; size?: 'large' | 'small' }
-const { project, size = 'large' } = Astro.props;
+interface Props { project: Project; size?: 'large' | 'small'; class?: string }
+const { project, size = 'large', class: className } = Astro.props;
 ---
 
-<a class:list={['project-card', `project-card--${size}`]} href={`/projekte/${project.slug}`}>
+<a class:list={['project-card', `project-card--${size}`, className]} href={`/projekte/${project.slug}`}>
   <div class="project-card__image" style={{
     '--project-tone': project.tone,
     '--project-image-ratio': project.cardImage?.aspectRatio,

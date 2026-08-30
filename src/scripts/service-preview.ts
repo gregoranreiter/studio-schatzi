@@ -35,7 +35,7 @@ function initializeServicePreview() {
   const positionTitles = () => {
     if (disposed || !hover.matches) return;
     const positions = titlePairs.map(({ title, headline }) => {
-      const gap = parseFloat(getComputedStyle(title).fontSize) * 1.5;
+      const gap = parseFloat(getComputedStyle(title).fontSize) * 1.5 - 10;
       // Both offsets belong to the overview section and ignore the hover transform.
       const offset = Math.min(0, headline.offsetTop + headline.offsetHeight + gap - title.offsetTop);
       return { title, offset };

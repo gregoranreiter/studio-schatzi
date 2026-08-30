@@ -1,9 +1,19 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
-import { projects } from '../data/projects';
+import { projectBySlug } from '../data/projects';
 
-const homeProjects = projects.filter((project) => project.slug !== 'donauwalther');
+const homeLayout = [
+  { slug: 'auf-der-matte', placement: 'full' },
+  { slug: 'karrer-oehlinger-architekten', placement: 'right' },
+  { slug: 'gretzl', placement: 'left' },
+  { slug: 'chrispi-architektur', placement: 'right' },
+] as const;
+
+const homeProjects = homeLayout.flatMap(({ slug, placement }) => {
+  const project = projectBySlug(slug);
+  return project ? [{ project, placement }] : [];
+});
 ---
 
 <BaseLayout>
@@ -13,7 +23,9 @@ const homeProjects = projects.filter((project) => project.slug !== 'donauwalther
 
   <section class="home-projects" aria-label="Projekte">
     <div class="home-projects-grid">
-      {homeProjects.map((project, index) => <ProjectCard project={project} size={index % 3 === 1 ? 'small' : 'large'} />)}
+      {homeProjects.map(({ project, placement }) => (
+        <ProjectCard project={project} class={`home-project--${placement}`} />
+      ))}
     </div>
     <a class="text-link archive-link" href="/projekte">Alle Projekte ansehen</a>
   </section>
