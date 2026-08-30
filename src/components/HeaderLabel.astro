@@ -1,0 +1,10 @@
+---
+interface Props {
+  text: string;
+}
+
+const { text } = Astro.props;
+const letters = [...new Intl.Segmenter('de', { granularity: 'grapheme' }).segment(text)];
+---
+
+<span class="header-label" aria-hidden="true">{letters.map(({ segment }) => <span data-header-glyph>{segment}</span>)}<span data-underline-anchor></span></span>

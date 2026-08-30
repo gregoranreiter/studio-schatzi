@@ -10,10 +10,9 @@ export function getStaticPaths() {
 interface Props { service: Service }
 const { service }: Props = Astro.props;
 const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
-const mailHref = `mailto:post@studioschatzi.at?subject=${encodeURIComponent(service.ctaSubject)}`;
 ---
 
-<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} hideFooter={true}>
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} footerCta={service}>
   <article class="service-detail">
     <header class="service-detail-hero">
       <h1>{service.title}</h1>
@@ -48,11 +47,6 @@ const mailHref = `mailto:post@studioschatzi.at?subject=${encodeURIComponent(serv
           </a>
         ))}
       </div>
-    </section>
-
-    <section class="service-cta">
-      <p>{service.ctaText}</p>
-      <a href={mailHref}>{service.ctaLink}</a>
     </section>
   </article>
 </BaseLayout>

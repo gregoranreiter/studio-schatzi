@@ -1,0 +1,64 @@
+---
+import { clientLogos as logos } from '../data/client-logos';
+---
+
+<client-logo-marquee class="client-logos">
+  <p class="visually-hidden">Ausgewählte Kunden: {logos.map(({ name }) => name).join(', ')}.</p>
+  <label class="client-logos__band" title="Logo-Laufband pausieren oder fortsetzen">
+    <input class="visually-hidden" type="checkbox" aria-label="Logo-Laufband pausieren" />
+    <span class="client-logos__track" aria-hidden="true">
+      {[0, 1].map(() => (
+        <span class="client-logos__group">
+          {[0, 1].map(() => (
+            <span class="client-logos__set">
+              {logos.map((logo) => (
+                <span class="client-logos__item" style={`--logo-width-scale: ${logo.widthScale ?? 1}; --logo-ratio: ${logo.width / logo.height}`}>
+                  <img src={logo.src} alt="" width={logo.width} height={logo.height} loading="eager" decoding="async" />
+                </span>
+              ))}
+            </span>
+          ))}
+        </span>
+      ))}
+    </span>
+  </label>
+</client-logo-marquee>
+
+<script>
+  class ClientLogoMarquee extends HTMLElement {
+    private observer?: ResizeObserver;
+
+    connectedCallback() {
+      const band = this.querySelector<HTMLElement>('.client-logos__band');
+      const track = this.querySelector<HTMLElement>('.client-logos__track');
+      const groups = [...this.querySelectorAll<HTMLElement>('.client-logos__group')];
+      const firstSet = groups[0]?.querySelector<HTMLElement>('.client-logos__set');
+      if (!band || !track || !firstSet) return;
+
+      // Each half of the loop must cover the viewport without stretching the gaps.
+      const fit = () => {
+        const setWidth = firstSet.getBoundingClientRect().width;
+        if (!setWidth) return;
+        const copies = Math.max(1, Math.ceil(band.clientWidth / setWidth));
+        for (const group of groups) {
+          while (group.childElementCount < copies) group.append(firstSet.cloneNode(true));
+          while (group.childElementCount > copies) group.lastElementChild?.remove();
+        }
+        track.style.animationDuration = `${setWidth * copies / 24}s`;
+      };
+
+      this.observer = new ResizeObserver(fit);
+      this.observer.observe(band);
+      this.observer.observe(firstSet);
+      fit();
+    }
+
+    disconnectedCallback() {
+      this.observer?.disconnect();
+    }
+  }
+
+  if (!customElements.get('client-logo-marquee')) {
+    customElements.define('client-logo-marquee', ClientLogoMarquee);
+  }
+</script>

@@ -1,18 +1,62 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { projects } from '../data/projects';
 import { services } from '../data/services';
+
+const referencedSlugs = new Set(services.flatMap((service) => service.cases.map((item) => item.project)));
+const previewProjects = projects.filter((project) => referencedSlugs.has(project.slug));
 ---
 
-<BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page" hideFooter={true}>
+<BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page">
   <section class="services-overview-grid" aria-labelledby="services-title">
     <h1 class="visually-hidden" id="services-title">Leistungen</h1>
     {services.map((service) => (
-      <a class="service-column" href={`/leistungen/${service.slug}`}>
-        <div>
-          <h2>{service.title}</h2>
-          <p>{service.headline}</p>
-        </div>
-      </a>
+      <article class="service-overview-item" aria-labelledby={`service-${service.slug}`}>
+        <a
+          class="service-column"
+          href={`/leistungen/${service.slug}`}
+          aria-labelledby={`service-${service.slug}`}
+          aria-describedby={`service-description-${service.slug}`}
+          data-service-projects={JSON.stringify(service.cases.map((item) => item.project))}
+        >
+          <h2 id={`service-${service.slug}`}>{service.title}</h2>
+          <p class="service-column__description" id={`service-description-${service.slug}`}>{service.headline}</p>
+        </a>
+        <ul class="service-projects" aria-label={`Projekte zu ${service.title}`} tabindex="0">
+          {service.cases.map((item) => {
+            const project = previewProjects.find((project) => project.slug === item.project);
+            return project && (
+              <li>
+                <a href={`/projekte/${project.slug}`}>
+                  <img
+                    src={project.cover}
+                    alt={project.coverAlt}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ objectPosition: project.cardImage?.position ?? 'center' }}
+                  />
+                  <span class="service-projects__title">{project.shortTitle ?? project.title}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </article>
     ))}
   </section>
+  <div class="service-preview" data-service-preview aria-hidden="true" hidden>
+    {previewProjects.map((project) => (
+      <img
+        data-preview-cover={project.slug}
+        data-src={project.cover}
+        alt=""
+        decoding="async"
+        style={{ objectPosition: project.cardImage?.position ?? 'center' }}
+        hidden
+      />
+    ))}
+  </div>
+  <script>
+    import '../scripts/service-preview';
+  </script>
 </BaseLayout>

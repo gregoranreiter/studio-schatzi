@@ -33,3 +33,5 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check types and build all pages
         run: pnpm build
+      - name: Check header and service interactions
+        run: pnpm test

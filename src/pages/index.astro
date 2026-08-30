@@ -3,36 +3,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { projects } from '../data/projects';
 
-const [aufDerMatte, koa, gretzl, chrispi] = [
-  projects.find((project) => project.slug === 'auf-der-matte')!,
-  projects.find((project) => project.slug === 'karrer-oehlinger-architekten')!,
-  projects.find((project) => project.slug === 'gretzl')!,
-  projects.find((project) => project.slug === 'chrispi-architektur')!,
-];
+const homeProjects = projects.filter((project) => project.slug !== 'donauwalther');
 ---
 
 <BaseLayout>
   <section class="hero">
     <h1>Wir geben guten Unternehmen eine Form, die hängen bleibt.</h1>
-    <span class="yellow-mark" aria-hidden="true"></span>
   </section>
 
-  <section class="home-projects">
-    <ProjectCard project={aufDerMatte} />
-    <div class="project-pair">
-      <ProjectCard project={koa} size="small" />
-      <ProjectCard project={gretzl} size="small" />
+  <section class="home-projects" aria-label="Projekte">
+    <div class="home-projects-grid">
+      {homeProjects.map((project, index) => <ProjectCard project={project} size={index % 3 === 1 ? 'small' : 'large'} />)}
     </div>
-    <ProjectCard project={chrispi} />
     <a class="text-link archive-link" href="/projekte">Alle Projekte ansehen</a>
-  </section>
-
-  <section class="statement">
-    <p>Studio Schatzi verbindet Strategie und Gestaltung. Für Marken, die nicht lauter werden müssen, sondern klarer.</p>
-  </section>
-
-  <section class="home-services">
-    <h2>Wir entwickeln Auftritte, die verstanden werden, und Kampagnen, die etwas in Bewegung setzen.</h2>
-    <a class="text-link" href="/leistungen">Wie wir arbeiten</a>
   </section>
 </BaseLayout>

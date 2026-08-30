@@ -1,13 +1,16 @@
 ---
 import '../styles/global.css';
 import SiteFooter from '../components/SiteFooter.astro';
+import HeaderLabel from '../components/HeaderLabel.astro';
+import HeaderWordmark from '../components/HeaderWordmark.astro';
+import type { Service } from '../data/services';
 import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title?: string;
   description?: string;
   image?: string;
-  hideFooter?: boolean;
+  footerCta?: Pick<Service, 'ctaText'>;
   bodyClass?: string;
 }
 
@@ -15,7 +18,7 @@ const {
   title = 'Studio Schatzi — Gestaltung & Strategie',
   description = 'Studio Schatzi entwickelt unverwechselbare Marken, Kampagnen und digitale Auftritte.',
   image = '/og.png',
-  hideFooter = false,
+  footerCta,
   bodyClass,
 } = Astro.props;
 
@@ -49,20 +52,27 @@ const socialImage = new URL(image, Astro.site);
     <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
     <div class="page-swipe" transition:persist="page-swipe" aria-hidden="true"></div>
     <header class="site-header">
-      <a class="wordmark" href="/" aria-label="Studio Schatzi Startseite">
-        <img src="/logo-studio-schatzi.svg" alt="Studio Schatzi" />
+      <a class="wordmark" data-header-adaptive href="/" aria-label="Studio Schatzi Startseite">
+        <HeaderWordmark />
       </a>
       <nav aria-label="Hauptnavigation">
-        <a href="/projekte" aria-current={pathname.startsWith('/projekte') ? 'page' : undefined}>Projekte</a>
-        <a href="/leistungen" aria-current={pathname.startsWith('/leistungen') ? 'page' : undefined}>Leistungen</a>
-        <a href="/studio" aria-current={pathname === '/studio' ? 'page' : undefined}>Studio</a>
-        <a class="nav-contact" href="/studio#kontakt">Kontakt</a>
+        <div class="nav-pages">
+          <a data-header-adaptive href="/projekte" aria-label="Projekte" aria-current={pathname.startsWith('/projekte') ? 'page' : undefined}><HeaderLabel text="Projekte" /></a>
+          <a data-header-adaptive href="/leistungen" aria-label="Leistungen" aria-current={pathname.startsWith('/leistungen') ? 'page' : undefined}><HeaderLabel text="Leistungen" /></a>
+          <a data-header-adaptive href="/studio" aria-label="Studio" aria-current={pathname === '/studio' ? 'page' : undefined}><HeaderLabel text="Studio" /></a>
+        </div>
+        <a class="nav-contact" data-header-adaptive href="mailto:post@studioschatzi.at" aria-label="Kontakt"><HeaderLabel text="Kontakt" /></a>
+        <span class="nav-indicator" data-nav-indicator transition:persist="nav-indicator" aria-hidden="true"></span>
       </nav>
     </header>
     <main id="main-content" tabindex="-1">
       <slot />
     </main>
-    {!hideFooter && <SiteFooter />}
+    <SiteFooter cta={footerCta} />
+    <script>
+      import '../scripts/header-contrast';
+      import '../scripts/nav-indicator';
+    </script>
     <script is:inline>
       (() => {
         const swipeWindow = window;

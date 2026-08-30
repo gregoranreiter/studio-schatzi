@@ -5,10 +5,8 @@ import { projects } from '../../data/projects';
 ---
 
 <BaseLayout title="Projekte — Studio Schatzi" description="Ausgewählte Marken, Kampagnen und digitale Auftritte von Studio Schatzi.">
-  <section class="page-intro archive-intro">
-    <h1>Arbeiten, die eine eigene Haltung zeigen.</h1>
-  </section>
-  <section class="archive-grid">
-    {projects.map((project, index) => <ProjectCard project={project} size={index % 3 === 1 ? 'small' : 'large'} />)}
+  <h1 class="visually-hidden" id="projects-title">Projekte</h1>
+  <section class="archive-grid" aria-labelledby="projects-title">
+    {projects.map((project) => <ProjectCard project={project} />)}
   </section>
 </BaseLayout>

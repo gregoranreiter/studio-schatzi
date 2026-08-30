@@ -6,7 +6,11 @@ const { project, size = 'large' } = Astro.props;
 ---
 
 <a class:list={['project-card', `project-card--${size}`]} href={`/projekte/${project.slug}`}>
-  <div class="project-card__image" style={`--project-tone: ${project.tone}`}>
+  <div class="project-card__image" style={{
+    '--project-tone': project.tone,
+    '--project-image-ratio': project.cardImage?.aspectRatio,
+    '--project-image-position': project.cardImage?.position,
+  }}>
     <img src={project.cover} alt={project.coverAlt} loading="lazy" />
   </div>
   <div class="project-card__caption">

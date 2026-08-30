@@ -13,7 +13,7 @@ The code now lives at the root of the Git repository. The original website and d
 - Have the studio approve the homepage, service copy, project descriptions, and credited scope of work. Importing the text does not verify its claims.
 - Confirm that every selected client image may appear publicly. Review the provisional Donauwalther case study.
 - Confirm the displayed email, phone number, studio description, and canonical domain.
-- Supply and approve the legal notice and privacy text, then add their pages and navigation links. They are not present in the supplied site.
+- Supply and approve the legal notice and privacy text, then add their pages and navigation links. They are not present in the supplied site. The footer's “Imprint & Privacy” label is currently plain text, awaiting an approved destination.
 - Choose and connect the production host and domain. The repo's CI checks builds; it does not deploy them.
 - After the domain is confirmed, add the production sitemap and robots policy.
 - Review the site in desktop and mobile browsers, including keyboard navigation, page transitions, and reduced-motion settings.
