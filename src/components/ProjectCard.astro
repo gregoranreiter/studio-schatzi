@@ -1,0 +1,16 @@
+---
+import type { Project } from '../data/projects';
+
+interface Props { project: Project; size?: 'large' | 'small' }
+const { project, size = 'large' } = Astro.props;
+---
+
+<a class:list={['project-card', `project-card--${size}`]} href={`/projekte/${project.slug}`}>
+  <div class="project-card__image" style={`--project-tone: ${project.tone}`}>
+    <img src={project.cover} alt={project.coverAlt} loading="lazy" />
+  </div>
+  <div class="project-card__caption">
+    <h2>{project.title}</h2>
+    <p>{project.scope}</p>
+  </div>
+</a>

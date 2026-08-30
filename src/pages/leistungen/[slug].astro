@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projectBySlug, type Project } from '../../data/projects';
+import { services, type Service } from '../../data/services';
+
+export function getStaticPaths() {
+  return services.map((service) => ({ params: { slug: service.slug }, props: { service } }));
+}
+
+interface Props { service: Service }
+const { service }: Props = Astro.props;
+const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
+const mailHref = `mailto:post@studioschatzi.at?subject=${encodeURIComponent(service.ctaSubject)}`;
+---
+
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} hideFooter={true}>
+  <article class="service-detail">
+    <header class="service-detail-hero">
+      <h1>{service.title}</h1>
+      <p>{service.headline}</p>
+    </header>
+
+    <section class="service-detail-opening">
+      <p>{service.intro}</p>
+    </section>
+
+    <div class="service-detail-chapters">
+      {service.chapters.map((chapter) => (
+        <section class="service-detail-chapter">
+          <h2>{chapter.title}</h2>
+          <p>{chapter.text}</p>
+        </section>
+      ))}
+    </div>
+
+    <section class="service-cases">
+      <h2>{service.casesIntro}</h2>
+      <div class="service-case-flow">
+        {cases.map(({ project, text }) => (
+          <a class="service-case" href={`/projekte/${project.slug}`} style={`--case-tone: ${project.tone}`}>
+            <div class="service-case__image">
+              <img src={project.cover} alt={project.coverAlt} loading="lazy" />
+            </div>
+            <div class="service-case__copy">
+              <h3>{project.title}</h3>
+              <p>{text}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="service-cta">
+      <p>{service.ctaText}</p>
+      <a href={mailHref}>{service.ctaLink}</a>
+    </section>
+  </article>
+</BaseLayout>

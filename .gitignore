@@ -1,0 +1,28 @@
+# Generated files
+node_modules/
+dist/
+.astro/
+.pnpm-store/
+.wrangler/
+coverage/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+.vercel/
+*.log
+
+# Editor and operating system files
+.DS_Store
+._*
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Keep original client/design documents outside this public repository.
+/Content/
+/Gestaltung/
+/Projects/
+/tmp/

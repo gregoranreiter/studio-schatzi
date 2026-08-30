@@ -1,0 +1,180 @@
+---
+import '../styles/global.css';
+import SiteFooter from '../components/SiteFooter.astro';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  hideFooter?: boolean;
+  bodyClass?: string;
+}
+
+const {
+  title = 'Studio Schatzi — Gestaltung & Strategie',
+  description = 'Studio Schatzi entwickelt unverwechselbare Marken, Kampagnen und digitale Auftritte.',
+  image = '/og.png',
+  hideFooter = false,
+  bodyClass,
+} = Astro.props;
+
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+const canonical = new URL(pathname, Astro.site);
+const socialImage = new URL(image, Astro.site);
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/logo-studio-schatzi.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="generator" content={Astro.generator} />
+    <ClientRouter fallback="swap" />
+    <title>{title}</title>
+  </head>
+  <body class={bodyClass}>
+    <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+    <div class="page-swipe" transition:persist="page-swipe" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Studio Schatzi Startseite">
+        <img src="/logo-studio-schatzi.svg" alt="Studio Schatzi" />
+      </a>
+      <nav aria-label="Hauptnavigation">
+        <a href="/projekte" aria-current={pathname.startsWith('/projekte') ? 'page' : undefined}>Projekte</a>
+        <a href="/leistungen" aria-current={pathname.startsWith('/leistungen') ? 'page' : undefined}>Leistungen</a>
+        <a href="/studio" aria-current={pathname === '/studio' ? 'page' : undefined}>Studio</a>
+        <a class="nav-contact" href="/studio#kontakt">Kontakt</a>
+      </nav>
+    </header>
+    <main id="main-content" tabindex="-1">
+      <slot />
+    </main>
+    {!hideFooter && <SiteFooter />}
+    <script is:inline>
+      (() => {
+        const swipeWindow = window;
+        if (typeof swipeWindow.studioSchatziSwipeCleanup === 'function') {
+          swipeWindow.studioSchatziSwipeCleanup();
+        }
+
+        document.documentElement.dataset.swipeReady = 'true';
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const directions = [
+          {
+            name: 'left',
+            enter: 'translate3d(-105%, 0, 0)',
+            exit: 'translate3d(105%, 0, 0)',
+          },
+          {
+            name: 'right',
+            enter: 'translate3d(105%, 0, 0)',
+            exit: 'translate3d(-105%, 0, 0)',
+          },
+          {
+            name: 'top',
+            enter: 'translate3d(0, -105%, 0)',
+            exit: 'translate3d(0, 105%, 0)',
+          },
+          {
+            name: 'bottom',
+            enter: 'translate3d(0, 105%, 0)',
+            exit: 'translate3d(0, -105%, 0)',
+          },
+        ];
+
+        const randomDirection = () => directions[Math.floor(Math.random() * directions.length)];
+
+        const animateOverlay = async (element, from, to, duration, easing) => {
+          const animation = element.animate(
+            [{ transform: from }, { transform: to }],
+            { duration, easing, fill: 'both' },
+          );
+          try {
+            await animation.finished;
+          } catch {
+            return;
+          }
+          element.style.transform = to;
+          animation.cancel();
+        };
+
+        const beforePreparation = (event) => {
+          const transitionEvent = event;
+          const overlay = document.querySelector('.page-swipe');
+          if (!overlay) return;
+          const load = transitionEvent.loader;
+
+          transitionEvent.loader = async () => {
+            if (reducedMotion.matches) {
+              await load();
+              return;
+            }
+
+            const direction = randomDirection();
+            document.documentElement.dataset.swipePhase = 'covering';
+            document.documentElement.dataset.swipeDirection = direction.name;
+            overlay.dataset.swipeDirection = direction.name;
+            overlay.style.transform = direction.enter;
+
+            await Promise.all([
+              load(),
+              animateOverlay(
+                overlay,
+                direction.enter,
+                'translate3d(0, 0, 0)',
+                560,
+                'cubic-bezier(.4, 0, .2, 1)',
+              ),
+            ]);
+
+            overlay.dataset.swipeCovered = 'true';
+            await new Promise((resolve) => window.setTimeout(resolve, 90));
+          };
+        };
+
+        const afterSwap = () => {
+          const overlay = document.querySelector('.page-swipe');
+          if (!overlay || reducedMotion.matches) return;
+          document.documentElement.dataset.swipeReady = 'true';
+          document.documentElement.dataset.swipePhase = 'revealing';
+          overlay.style.transform = 'translate3d(0, 0, 0)';
+          const direction = directions.find(({ name }) => name === overlay.dataset.swipeDirection) ?? directions[0];
+
+          animateOverlay(
+            overlay,
+            'translate3d(0, 0, 0)',
+            direction.exit,
+            680,
+            'cubic-bezier(.2, .65, .35, 1)',
+          ).finally(() => {
+            overlay.dataset.swipeRevealed = 'true';
+            overlay.style.transform = direction.enter;
+            delete document.documentElement.dataset.swipePhase;
+            delete document.documentElement.dataset.swipeDirection;
+          });
+        };
+
+        document.addEventListener('astro:before-preparation', beforePreparation);
+        document.addEventListener('astro:after-swap', afterSwap);
+
+        swipeWindow.studioSchatziSwipeCleanup = () => {
+          document.removeEventListener('astro:before-preparation', beforePreparation);
+          document.removeEventListener('astro:after-swap', afterSwap);
+        };
+      })();
+    </script>
+  </body>
+</html>

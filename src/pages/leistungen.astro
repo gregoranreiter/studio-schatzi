@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../data/services';
+---
+
+<BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page" hideFooter={true}>
+  <section class="services-overview-grid" aria-labelledby="services-title">
+    <h1 class="visually-hidden" id="services-title">Leistungen</h1>
+    {services.map((service) => (
+      <a class="service-column" href={`/leistungen/${service.slug}`}>
+        <div>
+          <h2>{service.title}</h2>
+          <p>{service.headline}</p>
+        </div>
+      </a>
+    ))}
+  </section>
+</BaseLayout>

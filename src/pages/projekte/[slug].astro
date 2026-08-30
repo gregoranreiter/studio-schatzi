@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { projects, projectBySlug, type Project } from '../../data/projects';
+
+export function getStaticPaths() {
+  return projects.map((project) => ({ params: { slug: project.slug }, props: { project } }));
+}
+
+interface Props { project: Project }
+const { project }: Props = Astro.props;
+const related = project.related.map(projectBySlug).filter(Boolean) as Project[];
+---
+
+<BaseLayout title={`${project.title} — Studio Schatzi`} description={project.summary} image={project.cover}>
+  <article class="project-page">
+    <header class="project-hero">
+      <h1>{project.title}</h1>
+      <p>{project.summary}</p>
+    </header>
+    <img class="project-hero-image" src={project.cover} alt={project.coverAlt} />
+    <section class="project-description">
+      <p>{project.description}</p>
+      <p>{project.scope}</p>
+    </section>
+    <section class="project-gallery">
+      {project.gallery.map((image) => (
+        <figure class:list={['gallery-item', image.format && `gallery-item--${image.format}`]}>
+          <img src={image.src} alt={image.alt} loading="lazy" />
+        </figure>
+      ))}
+    </section>
+  </article>
+  <section class="related-projects">
+    <h2>Weiter im Archiv</h2>
+    <div class="project-pair">
+      {related.map((item) => <ProjectCard project={item} size="small" />)}
+    </div>
+  </section>
+</BaseLayout>
