@@ -11,6 +11,8 @@ interface Props {
   description?: string;
   image?: string;
   footerCta?: Pick<Service, 'ctaText'>;
+  showFooter?: boolean;
+  showFooterCta?: boolean;
   bodyClass?: string;
 }
 
@@ -19,6 +21,8 @@ const {
   description = 'Studio Schatzi entwickelt unverwechselbare Marken, Kampagnen und digitale Auftritte.',
   image = '/og.png',
   footerCta,
+  showFooter = true,
+  showFooterCta = true,
   bodyClass,
 } = Astro.props;
 
@@ -61,14 +65,14 @@ const socialImage = new URL(image, Astro.site);
           <a data-header-adaptive href="/leistungen" aria-label="Leistungen" aria-current={pathname.startsWith('/leistungen') ? 'page' : undefined}><HeaderLabel text="Leistungen" /></a>
           <a data-header-adaptive href="/studio" aria-label="Studio" aria-current={pathname === '/studio' ? 'page' : undefined}><HeaderLabel text="Studio" /></a>
         </div>
-        <a class="nav-contact" data-header-adaptive href="mailto:post@studioschatzi.at" aria-label="Kontakt"><HeaderLabel text="Kontakt" /></a>
+        <a class="nav-contact" data-header-adaptive href="/kontakt" aria-label="Kontakt" aria-current={pathname === '/kontakt' ? 'page' : undefined}><HeaderLabel text="Kontakt" /></a>
         <span class="nav-indicator" data-nav-indicator transition:persist="nav-indicator" aria-hidden="true"></span>
       </nav>
     </header>
     <main id="main-content" tabindex="-1">
       <slot />
     </main>
-    <SiteFooter cta={footerCta} />
+    {showFooter && <SiteFooter cta={footerCta} showCta={showFooterCta} />}
     <script>
       import '../scripts/header-contrast';
       import '../scripts/nav-indicator';

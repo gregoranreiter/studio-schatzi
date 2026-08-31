@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Kontakt — Studio Schatzi"
+  description="Studio Schatzi erreichen: post@studioschatzi.at, +43 681 10 65 60 21. Hauptplatz 23, 4020 Linz."
+  bodyClass="contact-page"
+  showFooterCta={false}
+>
+  <section class="contact-intro" aria-labelledby="contact-title">
+    <h1 class="visually-hidden" id="contact-title">Kontakt</h1>
+    <address class="contact-details" aria-label="Studio Schatzi Kontakt">
+      <a href="mailto:post@studioschatzi.at">post@studioschatzi.at</a>
+      <a href="tel:+4368110656021">+43 681 10 65 60 21</a>
+      <p>Hauptplatz 23,<br />4020 Linz</p>
+    </address>
+  </section>
+</BaseLayout>

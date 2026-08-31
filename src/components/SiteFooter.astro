@@ -1,23 +1,25 @@
 ---
-import { services, type Service } from '../data/services';
+import type { Service } from '../data/services';
 import ClientLogos from './ClientLogos.astro';
 
 interface Props {
   cta?: Pick<Service, 'ctaText'>;
+  showCta?: boolean;
 }
 
-const { cta = services[0] } = Astro.props;
+const {
+  cta = { ctaText: 'Verwirrt? Wir erklären Ihnen gerne unsere Website.' },
+  showCta = true,
+} = Astro.props;
 ---
 
-<footer class="site-footer" id="kontakt">
-  <div class="site-footer__cta">
-    <p>{cta.ctaText}</p>
-    <address class="footer-contact" aria-label="Kontakt">
-      <a href="mailto:post@studioschatzi.at">post@studioschatzi.at</a>
-      <a href="tel:+4368110656021">+43 681 10 65 60 21</a>
-      <p>Hauptplatz 23,<br />4020 Linz</p>
-    </address>
-  </div>
+<footer class:list={['site-footer', { 'site-footer--compact': !showCta }]} id="kontakt">
+  {showCta && (
+    <div class="site-footer__cta">
+      <p>{cta.ctaText}</p>
+      <a class="pill-link footer-contact-link" href="/kontakt">Kontakt aufnehmen</a>
+    </div>
+  )}
   <ClientLogos />
   <div class="footer-bottom">
     <!-- Add a destination once the legal text or its approved URL is supplied. -->

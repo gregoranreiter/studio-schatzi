@@ -26,6 +26,18 @@ function initializeServicePreview() {
   let timer = 0;
   let frame = 0;
   let disposed = false;
+  let lastHeadlineIndex: number | null = null;
+  let activeHeadline: HTMLAnchorElement | null = null;
+  let headlineAnimation: Animation | null = null;
+  let exitingHeadline: HTMLElement | null = null;
+  let exitAnimation: Animation | null = null;
+  let headlineDirection = 1;
+  // Keep both masks synchronized with a quicker version of the page transition's easing.
+  const headlineTiming: KeyframeAnimationOptions = {
+    duration: 400,
+    easing: 'cubic-bezier(.2, .65, .35, 1)',
+    fill: 'both',
+  };
 
   const titlePairs = columns.flatMap((column) => {
     const title = column.querySelector<HTMLElement>('h2');
@@ -43,12 +55,88 @@ function initializeServicePreview() {
     positions.forEach(({ title, offset }) => title.style.setProperty('--service-title-offset', `${offset}px`));
   };
   const titleResize = new ResizeObserver(positionTitles);
+  if (header) titleResize.observe(header);
   titlePairs.forEach(({ column, title, headline }) => {
     titleResize.observe(column);
     titleResize.observe(title);
     titleResize.observe(headline);
   });
   positionTitles();
+
+  const stopHeadlineAnimation = () => {
+    headlineAnimation?.cancel();
+    headlineAnimation = null;
+  };
+  const stopExitAnimation = () => {
+    exitAnimation?.cancel();
+    exitAnimation = null;
+    if (exitingHeadline) delete exitingHeadline.dataset.headlineExiting;
+    exitingHeadline = null;
+  };
+  const hideHeadline = () => {
+    stopHeadlineAnimation();
+    stopExitAnimation();
+    activeHeadline = null;
+  };
+  const concealHeadline = (direction: number) => {
+    stopExitAnimation();
+    const headline = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+    // Retain a partially revealed mask when a quick hover interrupts its entrance.
+    const clipPath = headline ? getComputedStyle(headline).clipPath : 'none';
+    stopHeadlineAnimation();
+    activeHeadline = null;
+    if (!headline || disposed || reducedMotion.matches || !hover.matches || document.hidden) return;
+    exitingHeadline = headline;
+    headline.dataset.headlineExiting = '';
+    const animation = headline.animate([
+      { clipPath: clipPath === 'none' ? 'inset(0 0 0 0)' : clipPath },
+      { clipPath: direction < 0 ? 'inset(0 100% 0 0)' : 'inset(0 0 0 100%)' },
+    ], headlineTiming);
+    exitAnimation = animation;
+    animation.onfinish = () => {
+      if (exitAnimation === animation) stopExitAnimation();
+    };
+  };
+  const showHeadline = (column: HTMLAnchorElement, event?: PointerEvent) => {
+    if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
+    if (activeHeadline === column) return;
+    const headline = column.querySelector<HTMLElement>('.service-column__description');
+    if (!headline) return;
+    const index = columns.indexOf(column);
+    let direction = lastHeadlineIndex === null ? 0 : Math.sign(index - lastHeadlineIndex);
+    if (!direction && event) {
+      direction = Math.sign(event.movementX || 0);
+      if (!direction) {
+        const bounds = column.getBoundingClientRect();
+        direction = event.clientX < bounds.left + bounds.width / 2 ? 1 : -1;
+      }
+    }
+    // Keep the previous column across pointerleave so neighboring entries know the direction.
+    concealHeadline(direction || 1);
+    lastHeadlineIndex = index;
+    activeHeadline = column;
+    headlineDirection = direction || 1;
+    if (reducedMotion.matches) return;
+    // Complementary masks share one sweep; neither text moves or changes opacity.
+    const animation = headline.animate([
+      { clipPath: direction < 0 ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)' },
+      { clipPath: 'inset(0 0 0 0)' },
+    ], headlineTiming);
+    headlineAnimation = animation;
+    animation.onfinish = () => {
+      if (headlineAnimation === animation) stopHeadlineAnimation();
+    };
+  };
+  const showFocusedHeadline = () => {
+    const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
+    if (!focused || document.querySelector('.service-column:hover')) return false;
+    showHeadline(focused);
+    return true;
+  };
+  const relatedColumn = (target: EventTarget | null) => {
+    const column = (target as Element | null)?.closest?.<HTMLAnchorElement>('[data-service-projects]');
+    return column && columnCovers.has(column) ? column : null;
+  };
 
   const load = (image: HTMLImageElement) => {
     if (!loading.has(image)) {
@@ -71,6 +159,7 @@ function initializeServicePreview() {
     cancelAnimationFrame(frame);
     frame = 0;
   };
+  const hideAll = () => { hide(); hideHeadline(); };
   const showImage = () => {
     const selected = active?.images[active.index];
     covers.forEach((image) => { image.hidden = image !== selected; });
@@ -91,8 +180,10 @@ function initializeServicePreview() {
     // Scrolling or resizing can move another service (or the header) under the cursor.
     const underneath = document.elementFromPoint(pointer.x, pointer.y)?.closest<HTMLAnchorElement>('[data-service-projects]');
     if (underneath !== active.column) {
-      if (underneath && columnCovers.has(underneath)) void activate(underneath);
-      else hide();
+      if (underneath && columnCovers.has(underneath)) {
+        showHeadline(underneath);
+        void activate(underneath);
+      } else hideAll();
       return;
     }
     const viewport = window.visualViewport;
@@ -136,7 +227,8 @@ function initializeServicePreview() {
     rotate();
   };
   const follow = (event: PointerEvent, column: HTMLAnchorElement) => {
-    if (event.pointerType === 'touch' || !hover.matches) { hide(); return; }
+    if (event.pointerType === 'touch' || !hover.matches) { hideAll(); return; }
+    showHeadline(column, event);
     pointer = { x: event.clientX, y: event.clientY };
     void activate(column);
     schedule();
@@ -146,24 +238,36 @@ function initializeServicePreview() {
   for (const column of columns) {
     column.addEventListener('pointerenter', (event) => follow(event, column), options);
     column.addEventListener('pointermove', (event) => follow(event, column), options);
-    column.addEventListener('pointerleave', hide, options);
-    column.addEventListener('pointercancel', hide, options);
+    column.addEventListener('pointerleave', (event) => {
+      hide();
+      const next = relatedColumn(event.relatedTarget);
+      if (next) showHeadline(next, event);
+      else if (!showFocusedHeadline()) concealHeadline(Math.sign(event.movementX) || headlineDirection);
+    }, options);
+    column.addEventListener('pointercancel', hideAll, options);
+    column.addEventListener('focus', showFocusedHeadline, options);
+    column.addEventListener('blur', (event) => {
+      if (activeHeadline !== column || document.querySelector('.service-column:hover')) return;
+      const next = relatedColumn(event.relatedTarget);
+      if (next) showHeadline(next);
+      else concealHeadline(headlineDirection);
+    }, options);
   }
   window.addEventListener('resize', schedule, options);
   window.addEventListener('scroll', schedule, { ...options, capture: true });
   window.visualViewport?.addEventListener('resize', schedule, options);
   window.visualViewport?.addEventListener('scroll', schedule, options);
-  window.addEventListener('blur', hide, options);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); }, options);
+  window.addEventListener('blur', hideAll, options);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) hideAll(); }, options);
   document.addEventListener('keydown', hide, { signal: abort.signal });
-  document.addEventListener('astro:before-preparation', hide, { signal: abort.signal });
-  hover.addEventListener('change', () => { hide(); warmCovers(); positionTitles(); }, options);
-  reducedMotion.addEventListener('change', rotate, options);
+  document.addEventListener('astro:before-preparation', hideAll, { signal: abort.signal });
+  hover.addEventListener('change', () => { hideAll(); lastHeadlineIndex = null; warmCovers(); positionTitles(); }, options);
+  reducedMotion.addEventListener('change', () => { stopHeadlineAnimation(); stopExitAnimation(); rotate(); }, options);
   warmCovers();
 
   cleanup = () => {
     disposed = true;
-    hide();
+    hideAll();
     abort.abort();
     titleResize.disconnect();
   };

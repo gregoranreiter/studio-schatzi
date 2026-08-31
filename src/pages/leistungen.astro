@@ -7,7 +7,7 @@ const referencedSlugs = new Set(services.flatMap((service) => service.cases.map(
 const previewProjects = projects.filter((project) => referencedSlugs.has(project.slug));
 ---
 
-<BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page">
+<BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page" showFooter={false}>
   <section class="services-overview-grid" aria-labelledby="services-title">
     <h1 class="visually-hidden" id="services-title">Leistungen</h1>
     {services.map((service) => (
@@ -19,7 +19,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
           aria-describedby={`service-description-${service.slug}`}
           data-service-projects={JSON.stringify(service.cases.map((item) => item.project))}
         >
-          <h2 id={`service-${service.slug}`}>{service.title}</h2>
+          <h2 id={`service-${service.slug}`}><span class="service-column__title-label">{service.title}</span><span class="service-column__title-arrow" aria-hidden="true">&nbsp;→</span></h2>
           <p class="service-column__description" id={`service-description-${service.slug}`}>{service.headline}</p>
         </a>
         <ul class="service-projects" aria-label={`Projekte zu ${service.title}`} tabindex="0">
