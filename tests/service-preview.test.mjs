@@ -5,6 +5,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { placeServicePreview } from '../src/lib/service-preview.ts';
+import { createPhysicalMotion } from '../src/lib/physical-motion.ts';
 
 test('the cover follows horizontally with a 32px cursor gap and stays flush with the viewport bottom', () => {
   const viewport = { left: 0, top: 72, width: 934, height: 774 };
@@ -73,15 +74,7 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
         style: { setProperty(name, value) { this[name] = value; } },
       };
       const headline = {
-        offsetTop: 120, offsetHeight: 240, animations: [], dataset: {}, clipPath: 'none',
-        animate(keyframes, options) {
-          const animation = {
-            keyframes, options, cancelled: false, onfinish: null,
-            cancel() { this.cancelled = true; },
-          };
-          this.animations.push(animation);
-          return animation;
-        },
+        offsetTop: 120, offsetHeight: 240, offsetWidth: width - 48, dataset: {}, style: {},
       };
       const column = Object.assign(new EventTarget(), {
         dataset: { serviceProjects: JSON.stringify(projects) },
@@ -122,10 +115,22 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     return timerId;
   };
   window.clearInterval = (id) => timers.delete(id);
+  // Native browser frame methods reject an unrelated receiver, such as the clock adapter.
+  window.requestAnimationFrame = function (callback) {
+    assert.ok(this === undefined || this === window || this?.window === window,
+      'requestAnimationFrame must retain its Window receiver');
+    frames.set(++frameId, callback);
+    return frameId;
+  };
+  window.cancelAnimationFrame = function (id) {
+    assert.ok(this === undefined || this === window || this?.window === window,
+      'cancelAnimationFrame must retain its Window receiver');
+    frames.delete(id);
+  };
   const source = readFileSync(new URL('../src/scripts/service-preview.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   vm.runInNewContext(compiled.outputText, {
-    exports: {}, require: () => ({ placeServicePreview }), document, window,
+    exports: {}, require: () => ({ placeServicePreview, createPhysicalMotion }), document, window,
     AbortController: class extends AbortController {
       constructor() { super(); setMaxListeners(0, this.signal); }
     },
@@ -135,8 +140,8 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
       disconnect() { resizeObservers.delete(this); }
     },
     getComputedStyle: (element) => ({ fontSize: element.fontSize, clipPath: element.clipPath ?? 'none' }),
-    requestAnimationFrame(callback) { frames.set(++frameId, callback); return frameId; },
-    cancelAnimationFrame(id) { frames.delete(id); },
+    requestAnimationFrame: window.requestAnimationFrame,
+    cancelAnimationFrame: window.cancelAnimationFrame,
   });
   const move = (index, { x = 120, y = 300, movementX = 0, pointerType = 'mouse', type = 'pointermove' } = {}) => {
     hit = columns[index];
@@ -153,11 +158,19 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     previous?.dispatchEvent(Object.assign(new Event('blur'), { relatedTarget: focusedColumn }));
     focusedColumn.dispatchEvent(new Event('focus'));
   };
-  const flush = async () => {
-    await new Promise(setImmediate);
+  let frameTime = 0;
+  const tick = (delta = 1000 / 60) => {
+    frameTime += delta;
     const pending = [...frames.values()];
     frames.clear();
-    pending.forEach((callback) => callback());
+    pending.forEach((callback) => callback(frameTime));
+  };
+  const step = (milliseconds = 600) => {
+    for (let i = 0; i < Math.ceil(milliseconds / (1000 / 60)); i++) tick();
+  };
+  const flush = async () => {
+    await new Promise(setImmediate);
+    tick();
     await new Promise(setImmediate);
   };
   const advance = (milliseconds) => {
@@ -174,190 +187,237 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
   const visible = () => covers.filter((image) => !image.hidden).map((image) => image.dataset.previewCover);
   return { document, window, viewport, hover, motion, columns, covers, decodes, preview, timers, frames, resizeObservers,
     resize: () => resizeObservers.forEach((observer) => observer.callback()),
-    move, leave, focus, flush, advance, visible, setHit: (index) => { hit = columns[index] ?? null; } };
+    move, leave, focus, flush, advance, step, tick, visible, setHit: (index) => { hit = columns[index] ?? null; } };
 }
 
-const entryMask = (column) => column.headline.animations.at(-1)?.keyframes[0].clipPath;
+const mask = (column) => {
+  const [right, left] = column.headline.style.clipPath.match(/[-+\d.e]+%/g).map(parseFloat);
+  return { left: left / 100, right: 1 - right / 100 };
+};
 const previewPosition = (preview) => preview.style.transform.match(/-?[\d.]+px/g).map(parseFloat);
+const titleY = (column) => Number(column.title.style.transform.match(/, ([-\d.]+)px/)[1]);
+const titleScaleY = (column) => Number(column.title.style.transform.match(/scale\([^,]+, ([\d.]+)\)/)[1]);
+const activeText = (column) => column.headline.dataset.headlineActive === '';
+const exitingText = (column) => column.headline.dataset.headlineExiting === '';
 
-test('headline entry follows service order across pointerleave and does not restart within a column', () => {
-  const { columns, move, leave } = createPreviewEnvironment();
+test('directional masks share a 20px yellow gap at every frame without moving or fading the text', () => {
+  const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0, { type: 'pointerenter', x: 20, movementX: 2 });
-  assert.equal(entryMask(columns[0]), 'inset(0 100% 0 0)');
+  assert.equal(mask(columns[0]).right, 0, 'First entry reveals from the left');
+  step();
   leave(0, 2);
-  assert.equal(columns[0].headline.animations[0].cancelled, true);
-  assert.equal(columns[0].headline.animations.at(-1).keyframes[1].clipPath, 'inset(0 0 0 100%)',
-    'Moving right conceals the old text from left to right');
-  assert.equal(columns[0].headline.dataset.headlineExiting, '', 'Keep the outgoing text visible through its wipe');
   move(2, { type: 'pointerenter', x: 550 });
-  assert.equal(entryMask(columns[2]), 'inset(0 100% 0 0)', 'Moving right enters from the left');
-  assert.equal(columns[2].headline.animations[0].keyframes[0].clipPath, 'inset(0 100% 0 0)', 'Reveal from the left edge');
+  assert.equal(exitingText(columns[0]), true);
+  assert.equal(activeText(columns[2]), true);
+  for (let i = 0; i < 10; i++) {
+    tick();
+    const old = mask(columns[0]);
+    const next = mask(columns[2]);
+    assert.ok(Math.abs((old.left - next.right) * columns[0].headline.offsetWidth - 20) < .001);
+    assert.deepEqual(Object.keys(columns[2].headline.style), ['clipPath'], 'Text position and opacity stay untouched');
+  }
+  const before = columns[2].headline.style.clipPath;
   move(2, { x: 560, movementX: -4 });
-  assert.equal(columns[2].headline.animations.length, 1, 'Small pointer movements do not restart the animation');
+  assert.equal(columns[2].headline.style.clipPath, before, 'Pointer movement in the same column does not restart a wipe');
+  step();
+  assert.equal(exitingText(columns[0]), false);
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
+
   leave(2, 1);
-  assert.equal(columns[0].headline.dataset.headlineExiting, undefined, 'Rapid switching removes older outgoing text');
-  assert.equal(columns[2].headline.animations.at(-1).keyframes[1].clipPath, 'inset(0 100% 0 0)',
-    'Moving left conceals the old text from right to left');
-  move(1, { type: 'pointerenter', x: 420 });
-  assert.equal(entryMask(columns[1]), 'inset(0 0 0 100%)', 'Moving left enters from the right');
-  assert.equal(columns[1].headline.animations[0].keyframes[0].clipPath, 'inset(0 0 0 100%)', 'Reveal from the right edge');
-  leave(1, 2);
-  move(2, { type: 'pointerenter', x: 550 });
-  assert.equal(entryMask(columns[2]), 'inset(0 100% 0 0)', 'Rapid reversals use the most recent service');
-  const current = columns[2].headline.animations.at(-1);
-  assert.equal(current.keyframes[1].clipPath, 'inset(0 0 0 0)', 'The complete text is visible after settling');
-  assert.equal(current.options.duration, 400, 'Hover text uses the faster 400ms wipe');
-  assert.equal(current.options.easing, 'cubic-bezier(.2, .65, .35, 1)');
-  const outgoing = columns[1].headline.animations.at(-1);
-  assert.equal(outgoing.options.duration, current.options.duration, 'Both masks use the same timing');
-  assert.equal(outgoing.options.easing, current.options.easing);
-  for (const column of columns) {
-    for (const animation of column.headline.animations) {
-      for (const frame of animation.keyframes) {
-        assert.deepEqual(Object.keys(frame), ['clipPath'], 'Only the mask changes, never text opacity or position');
-      }
-    }
+  move(1, { x: 420 });
+  for (let i = 0; i < 10; i++) {
+    tick();
+    const old = mask(columns[2]);
+    const next = mask(columns[1]);
+    assert.ok(Math.abs((next.left - old.right) * columns[1].headline.offsetWidth - 20) < .001,
+      'Moving left reverses the sweep while keeping the same gap');
+  }
+  step();
+  assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
+});
+
+test('first entry uses pointer direction or entry side, and navigation resets that history', () => {
+  for (const [index, x, movementX, side] of [[2, 550, -3, 'right'], [3, 920, 0, 'right'], [1, 240, 0, 'left']]) {
+    const env = createPreviewEnvironment();
+    env.move(index, { type: 'pointerenter', x, movementX });
+    const visible = mask(env.columns[index]);
+    if (side === 'right') assert.ok(visible.left >= 1);
+    else assert.equal(visible.right, 0);
+    env.document.dispatchEvent(new Event('astro:before-swap'));
+    assert.equal(env.frames.size, 0);
+    env.move(0);
+    assert.equal(activeText(env.columns[0]), false, 'Disposed listeners do nothing');
+    env.document.dispatchEvent(new Event('astro:page-load'));
+    env.move(0, { type: 'pointerenter', x: 200 });
+    assert.ok(mask(env.columns[0]).left >= 1, 'Re-entry uses its own side, not the previous page');
   }
 });
 
-test('first entry uses pointer direction, with the entry side as a fallback', () => {
-  const moving = createPreviewEnvironment();
-  moving.move(2, { type: 'pointerenter', x: 550, movementX: -3 });
-  assert.equal(entryMask(moving.columns[2]), 'inset(0 0 0 100%)');
-  const fromRight = createPreviewEnvironment();
-  fromRight.move(3, { type: 'pointerenter', x: 920 });
-  assert.equal(entryMask(fromRight.columns[3]), 'inset(0 0 0 100%)');
-  const fromLeft = createPreviewEnvironment();
-  fromLeft.move(1, { type: 'pointerenter', x: 240 });
-  assert.equal(entryMask(fromLeft.columns[1]), 'inset(0 100% 0 0)');
-});
-
-test('keyboard focus follows the same direction and only takes over when the pointer leaves', () => {
-  const { columns, focus, move, leave } = createPreviewEnvironment();
+test('keyboard focus uses the same physical motion and resumes after hover ends', () => {
+  const { columns, focus, move, leave, step } = createPreviewEnvironment();
   focus(0);
   focus(2);
-  assert.equal(entryMask(columns[2]), 'inset(0 100% 0 0)');
+  assert.equal(mask(columns[2]).right, 0);
+  step();
+  assert.ok(titleY(columns[2]) < 0);
   focus(1);
-  assert.equal(entryMask(columns[1]), 'inset(0 0 0 100%)');
+  assert.ok(mask(columns[1]).left >= 1);
   move(3, { type: 'pointerenter', x: 800 });
-  const count = columns[1].headline.animations.length;
   focus(1);
-  assert.equal(columns[1].headline.animations.length, count, 'A hovered service takes precedence over focused text');
+  assert.equal(activeText(columns[3]), true, 'Hover takes precedence over keyboard focus');
   leave(3);
-  assert.equal(entryMask(columns[1]), 'inset(0 0 0 100%)');
-  assert.equal(columns[1].headline.animations.length, count + 1, 'Leaving resumes the focused service from the correct side');
+  assert.equal(activeText(columns[1]), true);
+  assert.ok(mask(columns[1]).left >= 1);
+  step();
+  assert.equal(titleY(columns[3]), 0);
+  assert.equal(titleY(columns[1]), parseFloat(columns[1].title.style['--service-title-offset']));
 });
 
-test('headline direction ignores touch and narrow layouts and resets after page navigation', () => {
-  const touch = createPreviewEnvironment({ canHover: false });
-  touch.move(1, { pointerType: 'touch' });
-  assert.equal(touch.columns[1].headline.animations.length, 0);
-  const narrow = createPreviewEnvironment({ width: 600 });
-  narrow.move(1);
-  narrow.focus(2);
-  assert.equal(narrow.columns[1].headline.animations.length, 0);
-  assert.equal(narrow.columns[2].headline.animations.length, 0);
-  const desktop = createPreviewEnvironment();
-  desktop.move(3);
-  desktop.document.dispatchEvent(new Event('astro:before-swap'));
-  assert.equal(desktop.columns[3].headline.animations[0].cancelled, true);
-  desktop.move(0);
-  assert.equal(desktop.columns[0].headline.animations.length, 0, 'Disposed listeners cannot animate text');
-  desktop.document.dispatchEvent(new Event('astro:page-load'));
-  desktop.move(0, { type: 'pointerenter', x: 200 });
-  assert.equal(entryMask(desktop.columns[0]), 'inset(0 0 0 100%)', 'New page entry uses its own entry side');
-});
-
-test('duplicate entry events and late animation completion cannot reset a newer direction', () => {
-  const { columns, move } = createPreviewEnvironment();
-  move(3, { x: 850 });
-  const previous = columns[3].headline.animations[0];
-  move(1, { x: 300 });
-  move(1, { type: 'pointerenter', x: 300 });
-  const current = columns[1].headline.animations[0];
-  assert.equal(columns[1].headline.animations.length, 1);
-  assert.equal(entryMask(columns[1]), 'inset(0 0 0 100%)');
-  previous.onfinish();
-  assert.equal(current.cancelled, false, 'A stale finish event must not cancel the new animation');
-  current.onfinish();
-  assert.equal(current.cancelled, true, 'Release animation styles after the text settles');
-  move(1, { x: 310 });
-  assert.equal(columns[1].headline.animations.length, 1, 'Settled text does not animate again while still hovered');
-});
-
-test('leaving conceals the current mask without moving text, then removes its visibility override', () => {
-  const { columns, move, leave } = createPreviewEnvironment();
-  move(1, { x: 300, movementX: 2 });
-  const headline = columns[1].headline;
-  headline.clipPath = 'inset(0px 35% 0px 0px)';
-  leave(1, null, -3);
-  const exit = headline.animations.at(-1);
-  assert.equal(headline.animations[0].cancelled, true);
-  assert.equal(exit.keyframes[0].clipPath, headline.clipPath, 'Continue from the interrupted reveal without flashing');
-  assert.equal(exit.keyframes[1].clipPath, 'inset(0 100% 0 0)', 'Conceal toward the pointer exit direction');
-  assert.equal(headline.dataset.headlineExiting, '');
-  exit.onfinish();
-  assert.equal(exit.cancelled, true);
-  assert.equal(headline.dataset.headlineExiting, undefined);
-});
-
-test('stale outgoing wipes cannot clear a newer wipe, and navigation clears both masks', () => {
-  const { columns, move, document } = createPreviewEnvironment();
+test('a brief hover releases the title from its current height with no remaining ascent', () => {
+  const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0);
+  tick();
+  tick();
+  const releasedAt = titleY(columns[0]);
+  assert.ok(releasedAt < 0 && releasedAt > parseFloat(columns[0].title.style['--service-title-offset']));
+  leave(0);
+  assert.equal(titleY(columns[0]), releasedAt, 'Leaving never teleports the title');
+  tick();
+  assert.ok(titleY(columns[0]) > releasedAt, 'The very next frame moves downward');
+  for (let i = 0; i < 20; i++) {
+    tick();
+    assert.ok(titleY(columns[0]) >= releasedAt && titleY(columns[0]) <= 0);
+  }
+  step();
+  assert.equal(titleY(columns[0]), 0);
+  assert.equal(titleScaleY(columns[0]), 1);
+});
+
+test('the title stretches slightly on pickup and lands quickly with restrained compression', () => {
+  const { columns, move, leave, step, tick } = createPreviewEnvironment();
+  move(0);
+  const liftScales = [];
+  for (let i = 0; i < 12; i++) { tick(); liftScales.push(titleScaleY(columns[0])); }
+  assert.ok(Math.max(...liftScales) > 1.02 && Math.max(...liftScales) <= 1.035);
+  step();
+  assert.equal(titleScaleY(columns[0]), 1, 'A held title returns to its natural shape');
+  leave(0);
+  let landingFrame = -1;
+  const landingScales = [];
+  for (let i = 0; i < 40; i++) {
+    tick();
+    if (titleY(columns[0]) === 0 && landingFrame === -1) landingFrame = i;
+    assert.ok(titleY(columns[0]) <= 0, 'The title cannot fall below its baseline');
+    landingScales.push(titleScaleY(columns[0]));
+  }
+  assert.ok(landingFrame >= 0 && landingFrame < 18, 'A full-height fall lands within 300ms');
+  assert.ok(Math.min(...landingScales) < .99 && Math.min(...landingScales) >= .955);
+  step();
+  assert.equal(titleY(columns[0]), 0);
+  assert.equal(titleScaleY(columns[0]), 1);
+});
+
+test('rehover catches a falling title in place, and reduced motion stops the fall and stretch', () => {
+  const { columns, move, leave, motion, frames, step, tick } = createPreviewEnvironment();
+  move(0);
+  step();
+  leave(0);
+  for (let i = 0; i < 5; i++) tick();
+  const fallingAt = titleY(columns[0]);
+  move(0);
+  assert.equal(titleY(columns[0]), fallingAt);
+  step();
+  assert.equal(titleY(columns[0]), parseFloat(columns[0].title.style['--service-title-offset']));
+  leave(0);
+  tick();
+  motion.matches = true;
+  motion.dispatchEvent(new Event('change'));
+  assert.equal(titleY(columns[0]), 0);
+  assert.equal(titleScaleY(columns[0]), 1);
+  assert.equal(frames.size, 0);
+});
+
+test('interrupted swipes retain the visible part of the old headline and discard older exits', () => {
+  const { columns, move, leave, tick, step, document, frames } = createPreviewEnvironment();
+  move(0, { x: 20, movementX: 2 });
+  tick();
+  const partial = mask(columns[0]);
+  assert.ok(partial.right > 0 && partial.right < 1);
   move(1);
-  const staleExit = columns[0].headline.animations.at(-1);
+  assert.deepEqual(mask(columns[0]), partial, 'The partially revealed text cannot flash fully visible on interruption');
+  tick();
   move(2);
-  const currentExit = columns[1].headline.animations.at(-1);
-  const currentEntry = columns[2].headline.animations.at(-1);
-  staleExit.onfinish();
-  assert.equal(currentExit.cancelled, false);
-  assert.equal(columns[1].headline.dataset.headlineExiting, '');
-  assert.equal(columns[0].headline.dataset.headlineExiting, undefined);
+  assert.equal(exitingText(columns[0]), false);
+  assert.equal(exitingText(columns[1]), true);
+  assert.equal(activeText(columns[2]), true);
+  const before = columns[2].headline.style.clipPath;
+  move(2, { type: 'pointerenter' });
+  assert.equal(columns[2].headline.style.clipPath, before, 'Duplicate enter events do not restart motion');
+  tick();
+  const last = mask(columns[2]);
+  leave(2, null, -3);
+  assert.deepEqual(mask(columns[2]), last, 'Leaving conceals the current mask, including during a reveal');
+  step();
+  assert.equal(columns.some(exitingText), false);
+  assert.equal(columns.some(activeText), false);
+  assert.ok(columns.every((column) => titleY(column) === 0));
+  move(1);
+  move(2);
   document.dispatchEvent(new Event('astro:before-swap'));
-  assert.equal(currentExit.cancelled, true);
-  assert.equal(currentEntry.cancelled, true);
-  assert.equal(columns[1].headline.dataset.headlineExiting, undefined);
+  assert.equal(columns.some(exitingText), false);
+  assert.equal(columns.some(activeText), false);
+  assert.equal(frames.size, 0);
 });
 
-test('reduced motion clears an outgoing wipe while keeping the current text immediately visible', () => {
-  const { columns, move, motion } = createPreviewEnvironment();
+test('reduced motion settles all bodies immediately and leaves the selected headline visible', async () => {
+  const { columns, move, motion, preview, flush, frames, timers, step } = createPreviewEnvironment();
   move(0);
-  move(1);
-  const exit = columns[0].headline.animations.at(-1);
-  const entry = columns[1].headline.animations.at(-1);
+  await flush();
+  step(50);
+  move(1, { x: 350 });
+  await flush();
   motion.matches = true;
   motion.dispatchEvent(new Event('change'));
-  assert.equal(exit.cancelled, true);
-  assert.equal(entry.cancelled, true);
-  assert.equal(columns[0].headline.dataset.headlineExiting, undefined);
-});
-
-test('reduced motion and page visibility changes stop headline animation immediately', () => {
-  const reduced = createPreviewEnvironment({ reduced: true });
-  reduced.move(1);
-  assert.equal(reduced.columns[1].headline.animations.length, 0);
-  const { columns, move, motion, document, hover, window } = createPreviewEnvironment();
-  move(0);
-  motion.matches = true;
-  motion.dispatchEvent(new Event('change'));
-  assert.equal(columns[0].headline.animations[0].cancelled, true);
-  move(1);
-  assert.equal(columns[1].headline.animations.length, 0);
-  motion.matches = false;
-  motion.dispatchEvent(new Event('change'));
+  assert.equal(columns.some(exitingText), false);
+  assert.equal(activeText(columns[1]), true);
+  assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
+  assert.equal(titleY(columns[0]), 0);
+  assert.equal(titleY(columns[1]), parseFloat(columns[1].title.style['--service-title-offset']));
+  assert.equal(previewPosition(preview)[0], 382);
+  assert.equal(frames.size, 0);
+  assert.equal(timers.size, 0);
   move(2);
-  document.hidden = true;
-  document.dispatchEvent(new Event('visibilitychange'));
-  assert.equal(columns[2].headline.animations[0].cancelled, true);
-  document.hidden = false;
-  move(3);
-  hover.matches = false;
-  hover.dispatchEvent(new Event('change'));
-  assert.equal(columns[3].headline.animations[0].cancelled, true);
-  hover.matches = true;
-  move(0);
-  window.dispatchEvent(new Event('blur'));
-  assert.equal(columns[0].headline.animations.at(-1).cancelled, true);
+  await flush();
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
+  assert.equal(frames.size, 0, 'Reduced motion never starts the engine loop');
+});
+
+test('touch, narrow layouts, hidden tabs, and navigation leave no active physics', async () => {
+  for (const options of [{ canHover: false }, { width: 600 }]) {
+    const env = createPreviewEnvironment(options);
+    env.move(1, { pointerType: 'touch' });
+    env.focus(2);
+    await env.flush();
+    assert.equal(env.columns.some(activeText), false);
+    assert.equal(env.frames.size, 0);
+    assert.equal(env.preview.hidden, true);
+  }
+  for (const cancel of [
+    (env) => { env.document.hidden = true; env.document.dispatchEvent(new Event('visibilitychange')); },
+    (env) => env.window.dispatchEvent(new Event('blur')),
+    (env) => { env.hover.matches = false; env.hover.dispatchEvent(new Event('change')); },
+    (env) => env.document.dispatchEvent(new Event('astro:before-preparation')),
+  ]) {
+    const env = createPreviewEnvironment();
+    env.move(0);
+    await env.flush();
+    env.move(1);
+    cancel(env);
+    assert.equal(env.frames.size, 0);
+    assert.equal(env.timers.size, 0);
+    assert.equal(env.columns.some(activeText), false);
+    assert.equal(env.columns.some(exitingText), false);
+  }
 });
 
 test('hover title stays just below its headline after text reflow and stops measuring on navigation', () => {
@@ -379,8 +439,8 @@ test('hover title stays just below its headline after text reflow and stops meas
   assert.equal(resizeObservers.size, 0);
 });
 
-test('hover shows the referenced covers, cuts every 500ms, and follows only horizontal pointer movement without easing', async () => {
-  const { preview, timers, move, flush, advance, visible } = createPreviewEnvironment();
+test('covers cut every 500ms and follow horizontal pointer movement with inertia on a fixed rail', async () => {
+  const { preview, timers, move, flush, advance, visible, step } = createPreviewEnvironment();
   move(0, { type: 'pointerenter' });
   await flush();
   assert.equal(preview.hidden, false);
@@ -397,20 +457,24 @@ test('hover shows the referenced covers, cuts every 500ms, and follows only hori
   assert.deepEqual(visible(), ['matte']);
   move(0, { x: 220, y: 350 });
   await flush();
+  assert.ok(previewPosition(preview)[0] < 252, 'The image follows with inertia instead of jumping to the cursor');
+  step();
   assert.deepEqual(previewPosition(preview), [252, originalY]);
   move(0, { x: 220, y: 700 });
   await flush();
   assert.deepEqual(previewPosition(preview), [252, originalY], 'Vertical movement leaves the image still');
 });
 
-test('changing services resets the first cover and replaces the old timer', async () => {
-  const { move, flush, advance, visible, timers, preview } = createPreviewEnvironment();
+test('changing services preserves the image position while resetting the cover and timer', async () => {
+  const { move, flush, advance, visible, timers, preview, step } = createPreviewEnvironment();
   move(0);
   await flush();
   const [, originalY] = previewPosition(preview);
   advance(500);
   move(1, { x: 350 });
   await flush();
+  assert.ok(previewPosition(preview)[0] < 382, 'Changing columns does not teleport the image');
+  step();
   assert.deepEqual(previewPosition(preview), [382, originalY], 'Changing columns follows the cursor on the same horizontal rail');
   assert.deepEqual(visible(), ['koa']);
   assert.equal(timers.size, 1);

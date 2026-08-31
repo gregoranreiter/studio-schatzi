@@ -3,6 +3,7 @@ import '../styles/global.css';
 import SiteFooter from '../components/SiteFooter.astro';
 import HeaderLabel from '../components/HeaderLabel.astro';
 import HeaderWordmark from '../components/HeaderWordmark.astro';
+import MobileMenu from '../components/MobileMenu.astro';
 import type { Service } from '../data/services';
 import { ClientRouter } from 'astro:transitions';
 
@@ -29,6 +30,12 @@ const {
 const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
 const canonical = new URL(pathname, Astro.site);
 const socialImage = new URL(image, Astro.site);
+const navigationLinks = [
+  { href: '/projekte', label: 'Projekte', current: pathname.startsWith('/projekte') },
+  { href: '/leistungen', label: 'Leistungen', current: pathname.startsWith('/leistungen') },
+  { href: '/studio', label: 'Studio', current: pathname === '/studio' },
+  { href: '/kontakt', label: 'Kontakt', current: pathname === '/kontakt' },
+];
 ---
 
 <!doctype html>
@@ -59,16 +66,22 @@ const socialImage = new URL(image, Astro.site);
       <a class="wordmark" data-header-adaptive href="/" aria-label="Studio Schatzi Startseite">
         <HeaderWordmark />
       </a>
-      <nav aria-label="Hauptnavigation">
+      <button class="menu-toggle" type="button" data-menu-toggle data-header-adaptive aria-label="Menü" aria-expanded="false" aria-controls="mobile-navigation" aria-haspopup="dialog" hidden>
+        <HeaderLabel text="Menü" />
+      </button>
+      <nav class="desktop-nav" aria-label="Hauptnavigation">
         <div class="nav-pages">
-          <a data-header-adaptive href="/projekte" aria-label="Projekte" aria-current={pathname.startsWith('/projekte') ? 'page' : undefined}><HeaderLabel text="Projekte" /></a>
-          <a data-header-adaptive href="/leistungen" aria-label="Leistungen" aria-current={pathname.startsWith('/leistungen') ? 'page' : undefined}><HeaderLabel text="Leistungen" /></a>
-          <a data-header-adaptive href="/studio" aria-label="Studio" aria-current={pathname === '/studio' ? 'page' : undefined}><HeaderLabel text="Studio" /></a>
+          {navigationLinks.slice(0, 3).map(({ href, label, current }) => (
+            <a data-header-adaptive href={href} aria-label={label} aria-current={current ? 'page' : undefined}><HeaderLabel text={label} /></a>
+          ))}
         </div>
-        <a class="nav-contact" data-header-adaptive href="/kontakt" aria-label="Kontakt" aria-current={pathname === '/kontakt' ? 'page' : undefined}><HeaderLabel text="Kontakt" /></a>
+        {navigationLinks.slice(3).map(({ href, label, current }) => (
+          <a class="nav-contact" data-header-adaptive href={href} aria-label={label} aria-current={current ? 'page' : undefined}><HeaderLabel text={label} /></a>
+        ))}
         <span class="nav-indicator" data-nav-indicator transition:persist="nav-indicator" aria-hidden="true"></span>
       </nav>
     </header>
+    <MobileMenu links={navigationLinks} />
     <main id="main-content" tabindex="-1">
       <slot />
     </main>
@@ -76,119 +89,21 @@ const socialImage = new URL(image, Astro.site);
     <script>
       import '../scripts/header-contrast';
       import '../scripts/nav-indicator';
-    </script>
-    <script is:inline>
-      (() => {
-        const swipeWindow = window;
-        if (typeof swipeWindow.studioSchatziSwipeCleanup === 'function') {
-          swipeWindow.studioSchatziSwipeCleanup();
-        }
+      import { initializePageSwipe } from '../scripts/page-swipe';
+      import { initializeMobileMenu } from '../scripts/mobile-menu';
 
-        document.documentElement.dataset.swipeReady = 'true';
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-        const directions = [
-          {
-            name: 'left',
-            enter: 'translate3d(-105%, 0, 0)',
-            exit: 'translate3d(105%, 0, 0)',
-          },
-          {
-            name: 'right',
-            enter: 'translate3d(105%, 0, 0)',
-            exit: 'translate3d(-105%, 0, 0)',
-          },
-          {
-            name: 'top',
-            enter: 'translate3d(0, -105%, 0)',
-            exit: 'translate3d(0, 105%, 0)',
-          },
-          {
-            name: 'bottom',
-            enter: 'translate3d(0, 105%, 0)',
-            exit: 'translate3d(0, -105%, 0)',
-          },
-        ];
-
-        const randomDirection = () => directions[Math.floor(Math.random() * directions.length)];
-
-        const animateOverlay = async (element, from, to, duration, easing) => {
-          const animation = element.animate(
-            [{ transform: from }, { transform: to }],
-            { duration, easing, fill: 'both' },
-          );
-          try {
-            await animation.finished;
-          } catch {
-            return;
-          }
-          element.style.transform = to;
-          animation.cancel();
-        };
-
-        const beforePreparation = (event) => {
-          const transitionEvent = event;
-          const overlay = document.querySelector('.page-swipe');
-          if (!overlay) return;
-          const load = transitionEvent.loader;
-
-          transitionEvent.loader = async () => {
-            if (reducedMotion.matches) {
-              await load();
-              return;
-            }
-
-            const direction = randomDirection();
-            document.documentElement.dataset.swipePhase = 'covering';
-            document.documentElement.dataset.swipeDirection = direction.name;
-            overlay.dataset.swipeDirection = direction.name;
-            overlay.style.transform = direction.enter;
-
-            await Promise.all([
-              load(),
-              animateOverlay(
-                overlay,
-                direction.enter,
-                'translate3d(0, 0, 0)',
-                560,
-                'cubic-bezier(.4, 0, .2, 1)',
-              ),
-            ]);
-
-            overlay.dataset.swipeCovered = 'true';
-            await new Promise((resolve) => window.setTimeout(resolve, 90));
-          };
-        };
-
-        const afterSwap = () => {
-          const overlay = document.querySelector('.page-swipe');
-          if (!overlay || reducedMotion.matches) return;
-          document.documentElement.dataset.swipeReady = 'true';
-          document.documentElement.dataset.swipePhase = 'revealing';
-          overlay.style.transform = 'translate3d(0, 0, 0)';
-          const direction = directions.find(({ name }) => name === overlay.dataset.swipeDirection) ?? directions[0];
-
-          animateOverlay(
-            overlay,
-            'translate3d(0, 0, 0)',
-            direction.exit,
-            680,
-            'cubic-bezier(.2, .65, .35, 1)',
-          ).finally(() => {
-            overlay.dataset.swipeRevealed = 'true';
-            overlay.style.transform = direction.enter;
-            delete document.documentElement.dataset.swipePhase;
-            delete document.documentElement.dataset.swipeDirection;
-          });
-        };
-
-        document.addEventListener('astro:before-preparation', beforePreparation);
-        document.addEventListener('astro:after-swap', afterSwap);
-
-        swipeWindow.studioSchatziSwipeCleanup = () => {
-          document.removeEventListener('astro:before-preparation', beforePreparation);
-          document.removeEventListener('astro:after-swap', afterSwap);
-        };
-      })();
+      const cleanupSwipe = initializePageSwipe();
+      let cleanupMenu = initializeMobileMenu();
+      const mountMenu = () => {
+        cleanupMenu();
+        cleanupMenu = initializeMobileMenu();
+      };
+      document.addEventListener('astro:after-swap', mountMenu);
+      import.meta.hot?.dispose(() => {
+        cleanupSwipe();
+        cleanupMenu();
+        document.removeEventListener('astro:after-swap', mountMenu);
+      });
     </script>
   </body>
 </html>

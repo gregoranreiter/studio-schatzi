@@ -1,4 +1,5 @@
 import { placeServicePreview } from '../lib/service-preview';
+import { createPhysicalMotion } from '../lib/physical-motion';
 
 let cleanup = () => {};
 
@@ -28,31 +29,69 @@ function initializeServicePreview() {
   let disposed = false;
   let lastHeadlineIndex: number | null = null;
   let activeHeadline: HTMLAnchorElement | null = null;
-  let headlineAnimation: Animation | null = null;
   let exitingHeadline: HTMLElement | null = null;
-  let exitAnimation: Animation | null = null;
   let headlineDirection = 1;
-  // Keep both masks synchronized with a quicker version of the page transition's easing.
-  const headlineTiming: KeyframeAnimationOptions = {
-    duration: 400,
-    easing: 'cubic-bezier(.2, .65, .35, 1)',
-    fill: 'both',
-  };
+  const physics = createPhysicalMotion({
+    request: (callback) => window.requestAnimationFrame(callback),
+    cancel: (id) => window.cancelAnimationFrame(id),
+  });
+  const masks = new Map<HTMLElement, { left: number; right: number }>();
+  let outgoingMask = { left: 0, right: 1 };
+  let headlineWidth = 1;
+  let swipeRunning = false;
 
   const titlePairs = columns.flatMap((column) => {
     const title = column.querySelector<HTMLElement>('h2');
     const headline = column.querySelector<HTMLElement>('.service-column__description');
-    return title && headline ? [{ column, title, headline }] : [];
+    if (!title || !headline) return [];
+    let position = 0;
+    let stretch = 0;
+    const renderTitle = () => {
+      const scaleY = 1 + stretch;
+      title.style.transform = hover.matches
+        ? `translate3d(0, ${position}px, 0) scale(${1 / Math.sqrt(scaleY)}, ${scaleY})`
+        : '';
+    };
+    const material = physics.value(0, { frequency: 30, damping: .55, precision: .0001 }, (value) => {
+      stretch = value;
+      renderTitle();
+    });
+    material.bounds(-.045, .035);
+    const motion = physics.value(0, { frequency: 36, damping: .72, launch: .65 }, (y, velocity, impact) => {
+      position = y;
+      // A slight stretch follows the pull; the floor impact briefly compresses it.
+      material.to(Math.min(.03, Math.abs(velocity) / 100000));
+      if (impact) material.kick(-Math.min(1.95, impact / 1400));
+      renderTitle();
+    });
+    motion.snap(0);
+    return [{ column, title, headline, motion, material, offset: 0 }];
   });
+  const syncTitles = (immediate = false) => {
+    titlePairs.forEach(({ column, motion, material, offset }) => {
+      if (hover.matches) column.dataset.servicePhysics = '';
+      else delete column.dataset.servicePhysics;
+      const target = hover.matches && activeHeadline === column ? offset : 0;
+      if (immediate || reducedMotion.matches || !hover.matches) {
+        motion.snap(target);
+        material.snap(0);
+      } else if (activeHeadline === column) motion.to(target);
+      else motion.drop(0, { gravity: 12000, restitution: .14 });
+    });
+  };
   const positionTitles = () => {
     if (disposed || !hover.matches) return;
-    const positions = titlePairs.map(({ title, headline }) => {
+    titlePairs.forEach((pair) => {
+      const { title, headline, motion } = pair;
       const gap = parseFloat(getComputedStyle(title).fontSize) * 1.5 - 10;
       // Both offsets belong to the overview section and ignore the hover transform.
-      const offset = Math.min(0, headline.offsetTop + headline.offsetHeight + gap - title.offsetTop);
-      return { title, offset };
+      pair.offset = Math.min(0, headline.offsetTop + headline.offsetHeight + gap - title.offsetTop);
+      headlineWidth = Math.max(1, headline.offsetWidth);
+      title.style.setProperty('--service-title-offset', `${pair.offset}px`);
+      // A small overshoot is allowed above the destination, never below the viewport.
+      motion.bounds(pair.offset - Math.min(8, gap * .3), 0);
     });
-    positions.forEach(({ title, offset }) => title.style.setProperty('--service-title-offset', `${offset}px`));
+    syncTitles();
   };
   const titleResize = new ResizeObserver(positionTitles);
   if (header) titleResize.observe(header);
@@ -63,40 +102,77 @@ function initializeServicePreview() {
   });
   positionTitles();
 
-  const stopHeadlineAnimation = () => {
-    headlineAnimation?.cancel();
-    headlineAnimation = null;
+  const setMask = (headline: HTMLElement, left: number, right: number) => {
+    masks.set(headline, { left, right });
+    headline.style.clipPath = `inset(0 ${Math.max(0, 1 - right) * 100}% 0 ${Math.max(0, left) * 100}%)`;
   };
-  const stopExitAnimation = () => {
-    exitAnimation?.cancel();
-    exitAnimation = null;
-    if (exitingHeadline) delete exitingHeadline.dataset.headlineExiting;
+  const clearExit = () => {
+    if (exitingHeadline) {
+      delete exitingHeadline.dataset.headlineExiting;
+      exitingHeadline.style.clipPath = '';
+      masks.delete(exitingHeadline);
+    }
     exitingHeadline = null;
   };
+  const renderSwipe = (progress: number) => {
+    if (!swipeRunning) return;
+    const gap = 20 / headlineWidth;
+    const edge = progress * (1 + gap);
+    const incoming = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+    // Both masks use one body, so the yellow strip cannot collapse or drift apart.
+    if (exitingHeadline) {
+      setMask(exitingHeadline,
+        headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
+        headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
+    }
+    if (incoming) {
+      setMask(incoming, headlineDirection < 0 ? Math.max(0, 1 - edge + gap) : 0,
+        headlineDirection < 0 ? 1 : Math.max(0, edge - gap));
+    }
+    if (progress === 1) {
+      swipeRunning = false;
+      clearExit();
+      if (incoming) setMask(incoming, 0, 1);
+    }
+  };
+  const swipe = physics.value(0, { frequency: 24, damping: 1, launch: 1, precision: .001 }, renderSwipe);
+  swipe.bounds(0, 1);
   const hideHeadline = () => {
-    stopHeadlineAnimation();
-    stopExitAnimation();
+    swipeRunning = false;
+    swipe.stop();
+    clearExit();
+    titlePairs.forEach(({ headline }) => {
+      delete headline.dataset.headlineActive;
+      headline.style.clipPath = '';
+    });
+    masks.clear();
     activeHeadline = null;
+    syncTitles(true);
   };
-  const concealHeadline = (direction: number) => {
-    stopExitAnimation();
-    const headline = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
-    // Retain a partially revealed mask when a quick hover interrupts its entrance.
-    const clipPath = headline ? getComputedStyle(headline).clipPath : 'none';
-    stopHeadlineAnimation();
-    activeHeadline = null;
-    if (!headline || disposed || reducedMotion.matches || !hover.matches || document.hidden) return;
-    exitingHeadline = headline;
-    headline.dataset.headlineExiting = '';
-    const animation = headline.animate([
-      { clipPath: clipPath === 'none' ? 'inset(0 0 0 0)' : clipPath },
-      { clipPath: direction < 0 ? 'inset(0 100% 0 0)' : 'inset(0 0 0 100%)' },
-    ], headlineTiming);
-    exitAnimation = animation;
-    animation.onfinish = () => {
-      if (exitAnimation === animation) stopExitAnimation();
-    };
+  const startSwipe = (column: HTMLAnchorElement | null, direction: number) => {
+    const previous = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+    clearExit();
+    outgoingMask = previous ? { ...masks.get(previous) ?? { left: 0, right: 1 } } : { left: 0, right: 1 };
+    if (previous) delete previous.dataset.headlineActive;
+    activeHeadline = column;
+    const incoming = column?.querySelector<HTMLElement>('.service-column__description');
+    if (incoming) incoming.dataset.headlineActive = '';
+    headlineDirection = direction || 1;
+    swipeRunning = false;
+    swipe.snap(0);
+    if (reducedMotion.matches || !hover.matches || document.hidden || disposed) {
+      if (previous) { previous.style.clipPath = ''; masks.delete(previous); }
+      if (incoming) setMask(incoming, 0, 1);
+    } else {
+      exitingHeadline = previous ?? null;
+      if (exitingHeadline) exitingHeadline.dataset.headlineExiting = '';
+      swipeRunning = true;
+      renderSwipe(0);
+      swipe.to(1);
+    }
+    syncTitles();
   };
+  const concealHeadline = (direction: number) => startSwipe(null, direction);
   const showHeadline = (column: HTMLAnchorElement, event?: PointerEvent) => {
     if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
     if (activeHeadline === column) return;
@@ -112,20 +188,8 @@ function initializeServicePreview() {
       }
     }
     // Keep the previous column across pointerleave so neighboring entries know the direction.
-    concealHeadline(direction || 1);
     lastHeadlineIndex = index;
-    activeHeadline = column;
-    headlineDirection = direction || 1;
-    if (reducedMotion.matches) return;
-    // Complementary masks share one sweep; neither text moves or changes opacity.
-    const animation = headline.animate([
-      { clipPath: direction < 0 ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)' },
-      { clipPath: 'inset(0 0 0 0)' },
-    ], headlineTiming);
-    headlineAnimation = animation;
-    animation.onfinish = () => {
-      if (headlineAnimation === animation) stopHeadlineAnimation();
-    };
+    startSwipe(column, direction || 1);
   };
   const showFocusedHeadline = () => {
     const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
@@ -148,6 +212,10 @@ function initializeServicePreview() {
   const warmCovers = () => {
     if (hover.matches) covers.forEach((image) => void load(image));
   };
+  let previewBox: ReturnType<typeof placeServicePreview> | null = null;
+  const imageX = physics.value(0, { frequency: 22, damping: .82, precision: .15 }, (x) => {
+    if (previewBox) preview.style.transform = `translate3d(${x}px, ${previewBox.y}px, 0)`;
+  });
   const stopRotation = () => {
     window.clearInterval(timer);
     timer = 0;
@@ -158,6 +226,8 @@ function initializeServicePreview() {
     stopRotation();
     cancelAnimationFrame(frame);
     frame = 0;
+    imageX.stop();
+    previewBox = null;
   };
   const hideAll = () => { hide(); hideHeadline(); };
   const showImage = () => {
@@ -190,18 +260,28 @@ function initializeServicePreview() {
     const viewportTop = viewport?.offsetTop ?? 0;
     const viewportBottom = viewportTop + (viewport?.height ?? window.innerHeight);
     const top = Math.min(viewportBottom, Math.max(viewportTop, header?.getBoundingClientRect().bottom ?? 0));
+    const left = viewport?.offsetLeft ?? 0;
+    const width = viewport?.width ?? window.innerWidth;
     const box = placeServicePreview(pointer, {
-      left: viewport?.offsetLeft ?? 0,
+      left,
       top,
-      width: viewport?.width ?? window.innerWidth,
+      width,
       height: viewportBottom - top,
     });
     if (!box.width || !box.height) { hide(); return; }
     Object.assign(preview.style, {
       width: `${box.width}px`,
       height: `${box.height}px`,
-      transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
     });
+    const initial = !previewBox;
+    previewBox = box;
+    imageX.bounds(left, left + width - box.width);
+    if (initial || reducedMotion.matches) imageX.snap(box.x);
+    else {
+      imageX.to(box.x);
+      // Viewport height changes apply immediately; only X has inertia.
+      preview.style.transform = `translate3d(${imageX.value}px, ${box.y}px, 0)`;
+    }
   };
   const schedule = () => {
     if (!active || disposed || frame) return;
@@ -210,7 +290,9 @@ function initializeServicePreview() {
   const activate = async (column: HTMLAnchorElement) => {
     if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
     if (active?.column === column) return;
-    hide();
+    stopRotation();
+    cancelAnimationFrame(frame);
+    frame = 0;
     const candidates = columnCovers.get(column) ?? [];
     const selection = { column, images: [] as HTMLImageElement[], index: 0 };
     active = selection;
@@ -239,10 +321,12 @@ function initializeServicePreview() {
     column.addEventListener('pointerenter', (event) => follow(event, column), options);
     column.addEventListener('pointermove', (event) => follow(event, column), options);
     column.addEventListener('pointerleave', (event) => {
-      hide();
       const next = relatedColumn(event.relatedTarget);
       if (next) showHeadline(next, event);
-      else if (!showFocusedHeadline()) concealHeadline(Math.sign(event.movementX) || headlineDirection);
+      else {
+        hide();
+        if (!showFocusedHeadline()) concealHeadline(Math.sign(event.movementX) || headlineDirection);
+      }
     }, options);
     column.addEventListener('pointercancel', hideAll, options);
     column.addEventListener('focus', showFocusedHeadline, options);
@@ -262,12 +346,22 @@ function initializeServicePreview() {
   document.addEventListener('keydown', hide, { signal: abort.signal });
   document.addEventListener('astro:before-preparation', hideAll, { signal: abort.signal });
   hover.addEventListener('change', () => { hideAll(); lastHeadlineIndex = null; warmCovers(); positionTitles(); }, options);
-  reducedMotion.addEventListener('change', () => { stopHeadlineAnimation(); stopExitAnimation(); rotate(); }, options);
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) {
+      swipe.snap(1);
+      syncTitles(true);
+      if (previewBox) imageX.snap(previewBox.x);
+    }
+    rotate();
+  }, options);
   warmCovers();
 
   cleanup = () => {
     disposed = true;
     hideAll();
+    physics.dispose();
+    columns.forEach((column) => { delete column.dataset.servicePhysics; });
+    titlePairs.forEach(({ title }) => { title.style.transform = ''; });
     abort.abort();
     titleResize.disconnect();
   };

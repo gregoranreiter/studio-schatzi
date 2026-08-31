@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectCover from '../components/ProjectCover.astro';
 import { projects } from '../data/projects';
 import { services } from '../data/services';
 
@@ -20,7 +21,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
           data-service-projects={JSON.stringify(service.cases.map((item) => item.project))}
         >
           <h2 id={`service-${service.slug}`}><span class="service-column__title-label">{service.title}</span><span class="service-column__title-arrow" aria-hidden="true">&nbsp;→</span></h2>
-          <p class="service-column__description" id={`service-description-${service.slug}`}>{service.headline}</p>
+          <p class="service-headline service-column__description" id={`service-description-${service.slug}`}>{service.headline}</p>
         </a>
         <ul class="service-projects" aria-label={`Projekte zu ${service.title}`} tabindex="0">
           {service.cases.map((item) => {
@@ -28,13 +29,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
             return project && (
               <li>
                 <a href={`/projekte/${project.slug}`}>
-                  <img
-                    src={project.cover}
-                    alt={project.coverAlt}
-                    loading="lazy"
-                    decoding="async"
-                    style={{ objectPosition: project.cardImage?.position ?? 'center' }}
-                  />
+                  <ProjectCover project={project} class="service-projects__image" loading="lazy" decoding="async" />
                   <span class="service-projects__title">{project.shortTitle ?? project.title}</span>
                 </a>
               </li>
@@ -51,7 +46,10 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
         data-src={project.cover}
         alt=""
         decoding="async"
-        style={{ objectPosition: project.cardImage?.position ?? 'center' }}
+        style={{
+          objectPosition: project.cardImage?.position ?? 'center',
+          '--project-cover-visible': project.coverVisibleHeight,
+        }}
         hidden
       />
     ))}

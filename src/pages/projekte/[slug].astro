@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
+import ProjectCover from '../../components/ProjectCover.astro';
 import { projects, projectBySlug, type Project } from '../../data/projects';
 import { splitProjectScope } from '../../lib/project-scope';
 
@@ -19,7 +20,7 @@ const related = project.related.map(projectBySlug).filter(Boolean) as Project[];
       <h1>{project.title}</h1>
       <p>{project.summary}</p>
     </header>
-    <img class="project-hero-image" src={project.cover} alt={project.coverAlt} />
+    <ProjectCover project={project} class="project-hero-image" />
     <section class="project-description">
       <p class="project-description__copy">{project.description}</p>
       <ul class="project-services" role="list" aria-label="Leistungen">

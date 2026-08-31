@@ -15,10 +15,12 @@
     "preview": "astro preview --host 127.0.0.1"
   },
   "dependencies": {
-    "astro": "7.2.9"
+    "astro": "7.2.9",
+    "matter-js": "0.20.0"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
+    "@types/matter-js": "0.20.2",
     "typescript": "6.0.3"
   }
 }

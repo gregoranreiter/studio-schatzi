@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCover from '../../components/ProjectCover.astro';
 import { projectBySlug, type Project } from '../../data/projects';
 import { services, type Service } from '../../data/services';
 
@@ -12,11 +13,11 @@ const { service }: Props = Astro.props;
 const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
 ---
 
-<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} footerCta={service}>
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} footerCta={service} bodyClass="service-detail-page">
   <article class="service-detail">
     <header class="service-detail-hero">
-      <h1>{service.title}</h1>
-      <p>{service.headline}</p>
+      <h1 class="service-headline">{service.headline}</h1>
+      <p class="service-detail-hero__label">{service.title}</p>
     </header>
 
     <section class="service-detail-opening">
@@ -37,9 +38,7 @@ const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(ite
       <div class="service-case-flow">
         {cases.map(({ project, text }) => (
           <a class="service-case" href={`/projekte/${project.slug}`} style={`--case-tone: ${project.tone}`}>
-            <div class="service-case__image">
-              <img src={project.cover} alt={project.coverAlt} loading="lazy" />
-            </div>
+            <ProjectCover project={project} class="service-case__image" loading="lazy" />
             <div class="service-case__copy">
               <h3>{project.title}</h3>
               <p>{text}</p>

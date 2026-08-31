@@ -1,0 +1,21 @@
+---
+import HeaderWordmark from './HeaderWordmark.astro';
+
+interface Props {
+  links: { href: string; label: string; current: boolean }[];
+}
+
+const { links } = Astro.props;
+---
+
+<dialog class="mobile-menu" id="mobile-navigation" aria-label="Menü">
+  <div class="mobile-menu__top">
+    <a class="wordmark" href="/" aria-label="Studio Schatzi Startseite"><HeaderWordmark /></a>
+    <button class="mobile-menu__close" type="button" data-menu-close autofocus>Schließen</button>
+  </div>
+  <nav class="mobile-menu__links" aria-label="Hauptnavigation">
+    {links.map(({ href, label, current }) => (
+      <a href={href} aria-current={current ? 'page' : undefined}>{label}</a>
+    ))}
+  </nav>
+</dialog>

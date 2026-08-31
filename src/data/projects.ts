@@ -9,6 +9,8 @@ export type Project = {
   scope: string;
   cover: string;
   coverAlt: string;
+  /** Fraction of the source height to show, measured from its top edge. */
+  coverVisibleHeight?: number;
   logo?: { src: string; width: number; height: number };
   cardImage?: { aspectRatio: string; position: string };
   tone: string;
@@ -47,7 +49,8 @@ export const projects: Project[] = [
     scope: 'Strategie, Corporate Design, Geschäftsausstattung, Webdesign und Social Media',
     cover: '/images/projects/koa/architecture.jpg',
     coverAlt: 'Architekturansichten mit dem typografischen KOA Zeichen',
-    // The photograph occupies the top 16:9 area; the source export has a white strip below.
+    // Show the top 987px of the 1241px export, excluding its white strip everywhere.
+    coverVisibleHeight: 987 / 1241,
     cardImage: { aspectRatio: '16 / 9', position: 'center top' },
     tone: '#e33436',
     gallery: [

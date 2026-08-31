@@ -1,0 +1,24 @@
+---
+import type { Project } from '../data/projects';
+
+interface Props {
+  project: Project;
+  class?: string;
+  loading?: 'eager' | 'lazy';
+  decoding?: 'sync' | 'async' | 'auto';
+}
+
+const { project, class: className, loading, decoding } = Astro.props;
+---
+
+<div
+  class:list={['project-cover', className, { 'project-cover--cropped': project.coverVisibleHeight }]}
+  style={{
+    '--project-tone': project.tone,
+    '--project-image-ratio': project.cardImage?.aspectRatio,
+    '--project-image-position': project.cardImage?.position,
+    '--project-cover-visible': project.coverVisibleHeight,
+  }}
+>
+  <img src={project.cover} alt={project.coverAlt} loading={loading} decoding={decoding} />
+</div>

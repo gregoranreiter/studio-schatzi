@@ -1,6 +1,7 @@
 ---
 import type { Project } from '../data/projects';
 import { splitProjectScope } from '../lib/project-scope';
+import ProjectCover from './ProjectCover.astro';
 
 interface Props { project: Project; size?: 'large' | 'small'; class?: string; stackScope?: boolean }
 const { project, size = 'large', class: className, stackScope = false } = Astro.props;
@@ -8,13 +9,7 @@ const scopeLines = stackScope ? splitProjectScope(project.scope) : [];
 ---
 
 <a class:list={['project-card', `project-card--${size}`, className]} href={`/projekte/${project.slug}`}>
-  <div class="project-card__image" style={{
-    '--project-tone': project.tone,
-    '--project-image-ratio': project.cardImage?.aspectRatio,
-    '--project-image-position': project.cardImage?.position,
-  }}>
-    <img src={project.cover} alt={project.coverAlt} loading="lazy" />
-  </div>
+  <ProjectCover project={project} class="project-card__image" loading="lazy" />
   <div class="project-card__caption">
     <h2>{project.title}</h2>
     <p>{stackScope
