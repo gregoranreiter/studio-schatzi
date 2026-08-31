@@ -1,8 +1,10 @@
 ---
 import type { Project } from '../data/projects';
+import { splitProjectScope } from '../lib/project-scope';
 
-interface Props { project: Project; size?: 'large' | 'small'; class?: string }
-const { project, size = 'large', class: className } = Astro.props;
+interface Props { project: Project; size?: 'large' | 'small'; class?: string; stackScope?: boolean }
+const { project, size = 'large', class: className, stackScope = false } = Astro.props;
+const scopeLines = stackScope ? splitProjectScope(project.scope) : [];
 ---
 
 <a class:list={['project-card', `project-card--${size}`, className]} href={`/projekte/${project.slug}`}>
@@ -15,6 +17,8 @@ const { project, size = 'large', class: className } = Astro.props;
   </div>
   <div class="project-card__caption">
     <h2>{project.title}</h2>
-    <p>{project.scope}</p>
+    <p>{stackScope
+      ? scopeLines.map((service, index) => <>{index > 0 && <br />}{service}</>)
+      : project.scope}</p>
   </div>
 </a>

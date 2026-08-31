@@ -7,6 +7,6 @@ import { projects } from '../../data/projects';
 <BaseLayout title="Projekte — Studio Schatzi" description="Ausgewählte Marken, Kampagnen und digitale Auftritte von Studio Schatzi.">
   <h1 class="visually-hidden" id="projects-title">Projekte</h1>
   <section class="archive-grid" aria-labelledby="projects-title">
-    {projects.map((project) => <ProjectCard project={project} />)}
+    {projects.map((project) => <ProjectCard project={project} stackScope />)}
   </section>
 </BaseLayout>

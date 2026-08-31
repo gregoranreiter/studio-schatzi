@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
 import { projects, projectBySlug, type Project } from '../../data/projects';
+import { splitProjectScope } from '../../lib/project-scope';
 
 export function getStaticPaths() {
   return projects.map((project) => ({ params: { slug: project.slug }, props: { project } }));
@@ -20,8 +21,10 @@ const related = project.related.map(projectBySlug).filter(Boolean) as Project[];
     </header>
     <img class="project-hero-image" src={project.cover} alt={project.coverAlt} />
     <section class="project-description">
-      <p>{project.description}</p>
-      <p>{project.scope}</p>
+      <p class="project-description__copy">{project.description}</p>
+      <ul class="project-services" role="list" aria-label="Leistungen">
+        {splitProjectScope(project.scope).map((service) => <li>{service}</li>)}
+      </ul>
     </section>
     <section class="project-gallery">
       {project.gallery.map((image) => (
