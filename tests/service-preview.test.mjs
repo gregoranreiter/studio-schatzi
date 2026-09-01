@@ -301,7 +301,10 @@ test('leaving contracts the visible headline toward its column left edge and ree
     env.move(index);
     assert.deepEqual(mask(env.columns[index]), previous, 'Re-hovering never restarts a close from zero width');
     env.tick();
-    assert.ok(mask(env.columns[index]).left < previous.left && mask(env.columns[index]).right > previous.right);
+    const reopened = mask(env.columns[index]);
+    assert.ok(reopened.left <= previous.left && reopened.right >= previous.right);
+    assert.ok(reopened.left < previous.left || reopened.right > previous.right,
+      'Re-hovering expands the caught mask without crossing a page boundary');
     env.step();
     env.leave(index);
     env.step();
@@ -391,7 +394,9 @@ test('the title stops at the raised position and lands faster with a restrained 
     landingScales.push(titleScaleY(columns[0]));
   }
   assert.ok(landingFrame >= 0 && landingFrame < 15, 'A full-height fall lands within 250ms');
-  assert.ok(Math.min(...landingScales) < .99 && Math.min(...landingScales) >= .955);
+  const minimumLandingScale = Math.min(...landingScales);
+  assert.ok(minimumLandingScale < .99 && minimumLandingScale >= .955,
+    `Landing compression ${minimumLandingScale} should stay between .955 and .99`);
   step();
   assert.equal(titleY(columns[0]), 0);
   assert.equal(titleScaleY(columns[0]), 1);

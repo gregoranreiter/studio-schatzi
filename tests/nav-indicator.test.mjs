@@ -90,8 +90,17 @@ function createIndicatorEnvironment() {
   const makeNav = () => ({
     dataset: {},
     getBoundingClientRect: () => origin,
-    querySelector: (selector) => selector === '[data-nav-indicator]' ? indicator : links[selected] ?? null,
-    querySelectorAll: (selector) => selector === 'a[href]' ? links : labels,
+    querySelector(selector) {
+      if (selector === '[data-nav-indicator]') return indicator;
+      if (selector === 'a[aria-current="page"]') return links[selected] ?? null;
+      if (selector === 'a[href="/leistungen"]') return links[1];
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === 'a[href]') return links;
+      if (selector === '.header-label') return labels;
+      return [];
+    },
   });
   let nav = makeNav();
   document.querySelector = () => nav;

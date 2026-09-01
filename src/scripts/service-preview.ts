@@ -63,7 +63,7 @@ function initializeServicePreview() {
       // A slight stretch follows the pull; the floor impact briefly compresses it.
       material.to(Math.min(.03, Math.abs(velocity) / 100000));
       // Only the floor landing compresses the title; pickup stops cleanly at the top.
-      if (impact && y >= -.5) material.kick(-Math.min(1.95, impact / 1400));
+      if (impact && y >= -.5) material.kick(-Math.min(2.4, impact / 1100));
       renderTitle();
     });
     motion.snap(0);
