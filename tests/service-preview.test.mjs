@@ -75,6 +75,7 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
       };
       const headline = {
         offsetTop: 120, offsetHeight: 240, offsetWidth: width - 48, dataset: {}, style: {},
+        getBoundingClientRect() { return { left: 24, width: this.offsetWidth }; },
       };
       const column = Object.assign(new EventTarget(), {
         dataset: { serviceProjects: JSON.stringify(projects) },
@@ -156,7 +157,7 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     focusedColumn = columns[index];
     if (previous === focusedColumn) return;
     previous?.dispatchEvent(Object.assign(new Event('blur'), { relatedTarget: focusedColumn }));
-    focusedColumn.dispatchEvent(new Event('focus'));
+    focusedColumn?.dispatchEvent(new Event('focus'));
   };
   let frameTime = 0;
   const tick = (delta = 1000 / 60) => {
@@ -199,11 +200,23 @@ const titleY = (column) => Number(column.title.style.transform.match(/, ([-\d.]+
 const titleScaleY = (column) => Number(column.title.style.transform.match(/scale\([^,]+, ([\d.]+)\)/)[1]);
 const activeText = (column) => column.headline.dataset.headlineActive === '';
 const exitingText = (column) => column.headline.dataset.headlineExiting === '';
+const origin = (column) => {
+  const bounds = column.getBoundingClientRect();
+  const headline = column.headline.getBoundingClientRect();
+  return (bounds.left + bounds.width / 2 - headline.left) / headline.width;
+};
+const startOrigin = (column) => {
+  const bounds = column.getBoundingClientRect();
+  const headline = column.headline.getBoundingClientRect();
+  return Math.max(0, Math.min(1, (bounds.left - headline.left) / headline.width));
+};
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} should equal ${expected}`);
 
 test('directional masks share a 20px yellow gap at every frame without moving or fading the text', () => {
   const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0, { type: 'pointerenter', x: 20, movementX: 2 });
-  assert.equal(mask(columns[0]).right, 0, 'First entry reveals from the left');
+  near(mask(columns[0]).left, startOrigin(columns[0]));
+  near(mask(columns[0]).right, startOrigin(columns[0]));
   step();
   leave(0, 2);
   move(2, { type: 'pointerenter', x: 550 });
@@ -236,26 +249,87 @@ test('directional masks share a 20px yellow gap at every frame without moving or
   assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
 });
 
-test('first entry uses pointer direction or entry side, and navigation resets that history', () => {
-  for (const [index, x, movementX, side] of [[2, 550, -3, 'right'], [3, 920, 0, 'right'], [1, 240, 0, 'left']]) {
+test('outside pointer entries expand on both sides of each column left edge', () => {
+  for (const [index, x, movementX] of [[0, 20, 2], [2, 550, -3], [3, 920, 0], [1, 240, 0]]) {
     const env = createPreviewEnvironment();
     env.move(index, { type: 'pointerenter', x, movementX });
     const visible = mask(env.columns[index]);
-    if (side === 'right') assert.ok(visible.left >= 1);
-    else assert.equal(visible.right, 0);
+    const start = startOrigin(env.columns[index]);
+    near(visible.left, start);
+    near(visible.right, start);
+    env.tick();
+    assert.ok(mask(env.columns[index]).left <= start && mask(env.columns[index]).right >= start,
+      'Both edges expand from the left edge of the hovered column');
+    const afterStart = mask(env.columns[index]);
+    env.move(index, { x: x + 80 });
+    assert.deepEqual(mask(env.columns[index]), afterStart, 'Pointer movement does not retarget or restart the reveal');
+    env.step();
+    env.leave(index);
+    env.step();
+    env.move(1, { type: 'pointerenter', x: 240 });
+    near(mask(env.columns[1]).left, startOrigin(env.columns[1]));
+    near(mask(env.columns[1]).right, startOrigin(env.columns[1]));
     env.document.dispatchEvent(new Event('astro:before-swap'));
     assert.equal(env.frames.size, 0);
     env.move(0);
     assert.equal(activeText(env.columns[0]), false, 'Disposed listeners do nothing');
     env.document.dispatchEvent(new Event('astro:page-load'));
     env.move(0, { type: 'pointerenter', x: 200 });
-    assert.ok(mask(env.columns[0]).left >= 1, 'Re-entry uses its own side, not the previous page');
+    near(mask(env.columns[0]).left, startOrigin(env.columns[0]));
+    near(mask(env.columns[0]).right, startOrigin(env.columns[0]));
   }
+});
+
+test('leaving contracts the visible headline toward its column left edge and reentry catches it in place', () => {
+  for (let index = 0; index < 4; index++) {
+    const env = createPreviewEnvironment();
+    env.move(index);
+    env.step();
+    env.leave(index, null, 4);
+    assert.deepEqual(mask(env.columns[index]), { left: 0, right: 1 });
+    const start = startOrigin(env.columns[index]);
+    let previous = mask(env.columns[index]);
+    for (let frame = 0; frame < 5; frame++) {
+      env.tick();
+      const visible = mask(env.columns[index]);
+      assert.ok(visible.left >= previous.left && visible.right <= previous.right);
+      assert.ok(visible.left > previous.left || visible.right < previous.right);
+      assert.ok(visible.left <= start && visible.right >= start);
+      if (start > 0) near(visible.left / start, (1 - visible.right) / (1 - start));
+      previous = visible;
+    }
+    env.move(index);
+    assert.deepEqual(mask(env.columns[index]), previous, 'Re-hovering never restarts a close from zero width');
+    env.tick();
+    assert.ok(mask(env.columns[index]).left < previous.left && mask(env.columns[index]).right > previous.right);
+    env.step();
+    env.leave(index);
+    env.step();
+    assert.equal(env.columns.some(exitingText), false);
+    assert.equal(env.columns.some(activeText), false);
+    assert.equal(env.frames.size, 0);
+  }
+});
+
+test('a brief center reveal closes from its partial mask without exposing hidden text', () => {
+  const env = createPreviewEnvironment();
+  env.move(2);
+  env.tick();
+  const partial = mask(env.columns[2]);
+  env.leave(2);
+  assert.deepEqual(mask(env.columns[2]), partial);
+  env.tick();
+  assert.ok(mask(env.columns[2]).left >= partial.left);
+  assert.ok(mask(env.columns[2]).right <= partial.right);
+  env.step();
+  assert.equal(env.columns.some(exitingText), false);
 });
 
 test('keyboard focus uses the same physical motion and resumes after hover ends', () => {
   const { columns, focus, move, leave, step } = createPreviewEnvironment();
   focus(0);
+  near(mask(columns[0]).left, origin(columns[0]));
+  near(mask(columns[0]).right, origin(columns[0]));
   focus(2);
   assert.equal(mask(columns[2]).right, 0);
   step();
@@ -271,6 +345,10 @@ test('keyboard focus uses the same physical motion and resumes after hover ends'
   step();
   assert.equal(titleY(columns[3]), 0);
   assert.equal(titleY(columns[1]), parseFloat(columns[1].title.style['--service-title-offset']));
+  focus(null);
+  assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
+  step();
+  assert.equal(columns.some(exitingText), false);
 });
 
 test('a brief hover releases the title from its current height with no remaining ascent', () => {
@@ -293,12 +371,14 @@ test('a brief hover releases the title from its current height with no remaining
   assert.equal(titleScaleY(columns[0]), 1);
 });
 
-test('the title stretches slightly on pickup and lands quickly with restrained compression', () => {
+test('the title stops at the raised position and lands faster with a restrained floor bounce', () => {
   const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0);
   const liftScales = [];
   for (let i = 0; i < 12; i++) { tick(); liftScales.push(titleScaleY(columns[0])); }
   assert.ok(Math.max(...liftScales) > 1.02 && Math.max(...liftScales) <= 1.035);
+  assert.ok(titleY(columns[0]) >= parseFloat(columns[0].title.style['--service-title-offset']),
+    'Pickup never overshoots above its destination');
   step();
   assert.equal(titleScaleY(columns[0]), 1, 'A held title returns to its natural shape');
   leave(0);
@@ -310,7 +390,7 @@ test('the title stretches slightly on pickup and lands quickly with restrained c
     assert.ok(titleY(columns[0]) <= 0, 'The title cannot fall below its baseline');
     landingScales.push(titleScaleY(columns[0]));
   }
-  assert.ok(landingFrame >= 0 && landingFrame < 18, 'A full-height fall lands within 300ms');
+  assert.ok(landingFrame >= 0 && landingFrame < 15, 'A full-height fall lands within 250ms');
   assert.ok(Math.min(...landingScales) < .99 && Math.min(...landingScales) >= .955);
   step();
   assert.equal(titleY(columns[0]), 0);
@@ -406,7 +486,6 @@ test('touch, narrow layouts, hidden tabs, and navigation leave no active physics
     (env) => { env.document.hidden = true; env.document.dispatchEvent(new Event('visibilitychange')); },
     (env) => env.window.dispatchEvent(new Event('blur')),
     (env) => { env.hover.matches = false; env.hover.dispatchEvent(new Event('change')); },
-    (env) => env.document.dispatchEvent(new Event('astro:before-preparation')),
   ]) {
     const env = createPreviewEnvironment();
     env.move(0);
@@ -526,9 +605,8 @@ test('leaving, changing tabs, keyboard input, and page navigation hide the box a
   move(0);
   await flush();
   document.dispatchEvent(new Event('astro:before-preparation'));
-  assert.equal(preview.hidden, true);
-  move(0);
-  await flush();
+  assert.equal(preview.hidden, false, 'Navigation preparation preserves the clicked hover state');
+  assert.equal(activeText(columns[0]), true);
   document.dispatchEvent(new Event('astro:before-swap'));
   assert.equal(preview.hidden, true);
   assert.equal(timers.size, 0);

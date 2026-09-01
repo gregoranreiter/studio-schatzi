@@ -13,16 +13,13 @@ const { service }: Props = Astro.props;
 const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
 ---
 
-<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} footerCta={service} bodyClass="service-detail-page">
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} bodyClass="service-detail-page" serviceTitle={service.title}>
   <article class="service-detail">
     <header class="service-detail-hero">
-      <h1 class="service-headline">{service.headline}</h1>
-      <p class="service-detail-hero__label">{service.title}</p>
+      <div class="service-detail-hero__content">
+        <h1 class="service-headline">{service.headline}</h1>
+      </div>
     </header>
-
-    <section class="service-detail-opening">
-      <p>{service.intro}</p>
-    </section>
 
     <div class="service-detail-chapters">
       {service.chapters.map((chapter) => (
@@ -37,7 +34,7 @@ const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(ite
       <h2>{service.casesIntro}</h2>
       <div class="service-case-flow">
         {cases.map(({ project, text }) => (
-          <a class="service-case" href={`/projekte/${project.slug}`} style={`--case-tone: ${project.tone}`}>
+          <a class="service-case" href={`/projekte/${project.slug}`}>
             <ProjectCover project={project} class="service-case__image" loading="lazy" />
             <div class="service-case__copy">
               <h3>{project.title}</h3>

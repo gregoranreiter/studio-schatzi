@@ -4,27 +4,26 @@ import SiteFooter from '../components/SiteFooter.astro';
 import HeaderLabel from '../components/HeaderLabel.astro';
 import HeaderWordmark from '../components/HeaderWordmark.astro';
 import MobileMenu from '../components/MobileMenu.astro';
-import type { Service } from '../data/services';
 import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title?: string;
   description?: string;
   image?: string;
-  footerCta?: Pick<Service, 'ctaText'>;
   showFooter?: boolean;
   showFooterCta?: boolean;
   bodyClass?: string;
+  serviceTitle?: string;
 }
 
 const {
   title = 'Studio Schatzi — Gestaltung & Strategie',
   description = 'Studio Schatzi entwickelt unverwechselbare Marken, Kampagnen und digitale Auftritte.',
   image = '/og.png',
-  footerCta,
   showFooter = true,
   showFooterCta = true,
   bodyClass,
+  serviceTitle,
 } = Astro.props;
 
 const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -36,6 +35,7 @@ const navigationLinks = [
   { href: '/studio', label: 'Studio', current: pathname === '/studio' },
   { href: '/kontakt', label: 'Kontakt', current: pathname === '/kontakt' },
 ];
+const isServiceDetail = bodyClass?.split(/\s+/).includes('service-detail-page') ?? false;
 ---
 
 <!doctype html>
@@ -70,10 +70,29 @@ const navigationLinks = [
         <HeaderLabel text="Menü" />
       </button>
       <nav class="desktop-nav" aria-label="Hauptnavigation">
-        <div class="nav-pages">
-          {navigationLinks.slice(0, 3).map(({ href, label, current }) => (
-            <a data-header-adaptive href={href} aria-label={label} aria-current={current ? 'page' : undefined}><HeaderLabel text={label} /></a>
-          ))}
+        <div class:list={['nav-pages', { 'nav-pages--service-detail': isServiceDetail }]}>
+          {isServiceDetail ? (
+            <>
+              <div class="nav-service-breadcrumb">
+                <a class="nav-services-back" data-header-adaptive href="/leistungen" aria-label="Leistungen">
+                  <HeaderLabel text="Leistungen" />
+                </a>
+                <span class="nav-service-separator" data-header-adaptive aria-hidden="true"><span data-header-glyph>→</span></span>
+                <a class="nav-service-current" data-header-adaptive href={pathname} aria-label={serviceTitle} aria-current="page">
+                  <HeaderLabel text={serviceTitle ?? ''} />
+                </a>
+              </div>
+              <div class="nav-standard-ghost" aria-hidden="true">
+                {navigationLinks.slice(0, 3).map(({ href, label }) => (
+                  <a data-header-adaptive href={href} tabindex="-1"><HeaderLabel text={label} /></a>
+                ))}
+              </div>
+            </>
+          ) : (
+            navigationLinks.slice(0, 3).map(({ href, label, current }) => (
+              <a data-header-adaptive href={href} aria-label={label} aria-current={current ? 'page' : undefined}><HeaderLabel text={label} /></a>
+            ))
+          )}
         </div>
         {navigationLinks.slice(3).map(({ href, label, current }) => (
           <a class="nav-contact" data-header-adaptive href={href} aria-label={label} aria-current={current ? 'page' : undefined}><HeaderLabel text={label} /></a>
@@ -85,7 +104,7 @@ const navigationLinks = [
     <main id="main-content" tabindex="-1">
       <slot />
     </main>
-    {showFooter && <SiteFooter cta={footerCta} showCta={showFooterCta} />}
+    {showFooter && <SiteFooter showCta={showFooterCta} />}
     <script>
       import '../scripts/header-contrast';
       import '../scripts/nav-indicator';

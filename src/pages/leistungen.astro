@@ -21,7 +21,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
           data-service-projects={JSON.stringify(service.cases.map((item) => item.project))}
         >
           <h2 id={`service-${service.slug}`}><span class="service-column__title-label">{service.title}</span><span class="service-column__title-arrow" aria-hidden="true">&nbsp;→</span></h2>
-          <p class="service-headline service-column__description" id={`service-description-${service.slug}`}>{service.headline}</p>
+          <p class="service-headline service-column__description" id={`service-description-${service.slug}`}><span>{service.headline}</span></p>
         </a>
         <ul class="service-projects" aria-label={`Projekte zu ${service.title}`} tabindex="0">
           {service.cases.map((item) => {

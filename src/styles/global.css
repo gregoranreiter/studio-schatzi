@@ -89,13 +89,12 @@ h2, h3, h4, h5, h6 {
 .archive-grid .project-card__caption p,
 .project-description__copy,
 .project-services,
-.service-detail-opening p,
+.service-case__copy p,
 .service-projects__title,
 .studio-text p,
 .text-link,
 .pill-link,
-.contact-details,
-.site-footer__cta > p {
+.contact-details {
   font-size: var(--text-md);
   line-height: var(--line-height-md);
 }
@@ -215,6 +214,38 @@ h2, h3, h4, h5, h6 {
   display: flex;
   align-items: flex-start;
   gap: calc(2 * var(--nav-gap));
+}
+
+.nav-pages--service-detail { position: relative; }
+
+.nav-service-breadcrumb,
+.nav-standard-ghost {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(2 * var(--nav-gap));
+}
+
+.nav-standard-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.nav-breadcrumb-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.nav-services-back {
+  min-width: 0;
+}
+
+.nav-service-current {
+  min-width: 0;
 }
 
 .nav-contact {
@@ -720,8 +751,6 @@ html:has(.service-detail-page) {
 }
 
 .service-headline {
-  width: calc(100% - 2 * var(--pad));
-  margin: 0 var(--pad);
   max-width: none;
   font-size: min(var(--text-lg), 9.9svh);
   line-height: var(--line-height-lg);
@@ -751,9 +780,20 @@ html:has(.service-detail-page) {
   z-index: 2;
   top: var(--service-headline-top);
   left: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--pad);
+  display: grid;
+  grid-template-columns: var(--page-columns);
+  column-gap: var(--grid-gap);
   visibility: hidden;
   /* The text may cross columns, but each column keeps its own click target. */
   pointer-events: none;
+}
+
+.service-column__description > span {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .services-overview-grid:not(:has(.service-column:hover)) .service-column:not([data-service-physics]):focus-visible .service-column__description,
@@ -793,10 +833,6 @@ html:has(.service-detail-page) {
   }
 }
 
-.service-column:is(:hover, :focus-visible) .service-column__title-label {
-  text-decoration-line: underline;
-}
-
 .service-preview {
   position: fixed;
   top: 0;
@@ -820,45 +856,33 @@ html:has(.service-detail-page) {
 .service-preview img[hidden] { display: none; }
 
 .service-detail-hero {
-  min-height: min(82vh, 900px);
-  padding: var(--service-headline-top) 0 var(--pad);
+  padding: var(--service-headline-top) var(--pad) clamp(3rem, 6vw, 6rem);
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--page-columns);
+  column-gap: var(--grid-gap);
+}
+
+.service-detail-hero__content {
+  grid-column: 1 / -1;
+  min-width: 0;
   position: relative;
 }
 
-.service-detail-hero__label {
-  margin: calc(var(--text-md) * 1.5 - 10px) var(--pad) 0;
-  font-size: var(--text-md);
-  line-height: var(--line-height-md);
-  letter-spacing: 0;
-}
-
-.service-detail-opening {
-  min-height: 72vh;
-  padding: clamp(7rem, 13vw, 14rem) var(--pad);
-  background: var(--ink);
-  color: var(--paper);
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  align-items: center;
-}
-
-.service-detail-opening p {
-  grid-column: 4 / span 8;
+.service-detail-hero .service-headline {
+  width: auto;
   margin: 0;
-
-  letter-spacing: 0;
 }
 
 .service-detail-chapters { padding: 0 var(--pad); }
 
 .service-detail-chapter {
-  min-height: 64vh;
-  padding: clamp(6rem, 11vw, 12rem) 0;
+  padding: clamp(4rem, 7vw, 7rem) 0;
   border-bottom: 1px solid var(--line);
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: var(--pad);
-  align-items: center;
+  align-items: start;
 }
 
 .service-detail-chapter h2 {
@@ -886,25 +910,25 @@ html:has(.service-detail-page) {
 }
 
 .service-case-flow {
-  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: var(--page-columns);
+  gap: var(--project-gap) var(--grid-gap);
 }
 
 .service-case {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 8fr) minmax(17rem, 4fr);
-  min-height: 36rem;
-  border-bottom: 1px solid var(--line);
-  box-shadow: inset .55rem 0 0 var(--case-tone);
+  grid-template-columns: subgrid;
+  align-items: start;
+  min-width: 0;
 }
 
-.service-case:nth-child(even) {
-  grid-template-columns: minmax(17rem, 4fr) minmax(0, 8fr);
-  box-shadow: inset -.55rem 0 0 var(--case-tone);
+.service-case__image {
+  grid-column: 1 / span 3;
+  grid-row: 1;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
 }
-
-.service-case:nth-child(even) .service-case__image { order: 2; }
-
-.service-case__image { overflow: hidden; }
 
 .service-case__image img {
   width: 100%;
@@ -915,11 +939,16 @@ html:has(.service-detail-page) {
 .service-case:hover .service-case__image img { transform: scale(1.015); }
 
 .service-case__copy {
-  padding: clamp(1.5rem, 3.2vw, 3.5rem);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 4rem;
+  grid-column: 4;
+  grid-row: 1;
+  align-self: stretch;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 1.25rem;
+  overflow-wrap: break-word;
 }
 
 .service-case__copy h3 {
@@ -929,8 +958,9 @@ html:has(.service-detail-page) {
 }
 
 .service-case__copy p {
+  align-self: end;
   margin: 0;
-
+  color: var(--ink-muted);
   letter-spacing: 0;
 }
 
@@ -1087,20 +1117,11 @@ html:has(.service-detail-page) {
   grid-template-columns: var(--page-columns);
   align-content: start;
   align-items: start;
-  gap: clamp(1.5rem, 3dvh, 2.5rem) var(--grid-gap);
-}
-
-.site-footer__cta > p {
-  grid-column: 1 / span 2;
-  min-width: 0;
-  max-width: none;
-  margin: 0;
-  letter-spacing: 0;
-  text-wrap: pretty;
+  gap: var(--grid-gap);
 }
 
 .footer-contact-link {
-  grid-column: 3 / -1;
+  grid-column: 1 / -1;
   grid-row: 1;
   min-width: 0;
 }
@@ -1119,7 +1140,6 @@ html:has(.service-detail-page) {
   .site-footer { padding-top: calc(var(--header-height) + .5rem); }
   .client-logos { --logo-height: 1.25rem; margin-top: 1rem; }
   .client-logos__item { height: 3rem; }
-  .site-footer__cta { row-gap: 1.5rem; }
   .footer-bottom { row-gap: .75rem; }
 }
 
@@ -1178,23 +1198,30 @@ html:has(.service-detail-page) {
   .service-copy p { margin-top: 3rem; }
   .service-related { margin-left: 0; }
   .service-related .project-card:first-child { margin-bottom: 4rem; }
-  .service-detail-hero { min-height: 78svh; }
-  .service-detail-opening { min-height: 66svh; display: flex; align-items: center; }
-  .service-detail-chapter { min-height: auto; display: block; }
+  .service-detail-chapter { display: block; }
   .service-detail-chapter h2,
-  .service-cases > h2,
-  .site-footer__cta > p {
+  .service-cases > h2 {
     hyphens: auto;
     overflow-wrap: break-word;
   }
   .service-detail-chapter p { margin-top: 3rem; }
+  .service-case-flow { grid-template-columns: 1fr; }
   .service-case,
-  .service-case:nth-child(even) { grid-template-columns: 1fr; min-height: 0; box-shadow: inset .4rem 0 0 var(--case-tone); }
-  .service-case:nth-child(even) .service-case__image { order: 0; }
-  .service-case__image { aspect-ratio: 4 / 3; }
-  .service-case__copy { min-height: 19rem; }
+  .service-case:nth-child(even) { grid-template-columns: 1fr; }
+  .service-case__image,
+  .service-case:nth-child(even) .service-case__image {
+    grid-column: 1;
+    grid-row: auto;
+    aspect-ratio: 16 / 9;
+  }
+  .service-case__copy {
+    grid-column: 1;
+    grid-row: auto;
+    align-self: start;
+    grid-template-rows: auto auto;
+    padding-top: 2.4rem;
+  }
   .site-footer__cta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .site-footer__cta > p { grid-column: 1 / -1; max-width: 100%; min-width: 0; }
   .footer-contact-link { grid-column: 1 / -1; grid-row: auto; }
   .contact-details { grid-column: 1 / -1; }
   .studio-intro h1 { grid-column: 1 / -1; }
@@ -1226,9 +1253,15 @@ html:has(.service-detail-page) {
     position: static;
     width: auto;
     margin: 1rem 0 0;
+    padding: 0;
+    display: block;
     visibility: visible;
     pointer-events: auto;
   }
+  .service-detail-hero {
+    grid-template-columns: 1fr;
+  }
+  .service-detail-hero__content { grid-column: 1; }
   .service-projects {
     display: grid;
     grid-auto-flow: column;

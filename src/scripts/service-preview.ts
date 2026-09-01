@@ -27,16 +27,17 @@ function initializeServicePreview() {
   let timer = 0;
   let frame = 0;
   let disposed = false;
-  let lastHeadlineIndex: number | null = null;
   let activeHeadline: HTMLAnchorElement | null = null;
   let exitingHeadline: HTMLElement | null = null;
-  let headlineDirection = 1;
+  let headlineDirection = 0;
+  let headlineOrigin = .5;
   const physics = createPhysicalMotion({
     request: (callback) => window.requestAnimationFrame(callback),
     cancel: (id) => window.cancelAnimationFrame(id),
   });
   const masks = new Map<HTMLElement, { left: number; right: number }>();
   let outgoingMask = { left: 0, right: 1 };
+  let incomingMask = { left: .5, right: .5 };
   let headlineWidth = 1;
   let swipeRunning = false;
 
@@ -61,7 +62,8 @@ function initializeServicePreview() {
       position = y;
       // A slight stretch follows the pull; the floor impact briefly compresses it.
       material.to(Math.min(.03, Math.abs(velocity) / 100000));
-      if (impact) material.kick(-Math.min(1.95, impact / 1400));
+      // Only the floor landing compresses the title; pickup stops cleanly at the top.
+      if (impact && y >= -.5) material.kick(-Math.min(1.95, impact / 1400));
       renderTitle();
     });
     motion.snap(0);
@@ -76,7 +78,7 @@ function initializeServicePreview() {
         motion.snap(target);
         material.snap(0);
       } else if (activeHeadline === column) motion.to(target);
-      else motion.drop(0, { gravity: 12000, restitution: .14 });
+      else motion.drop(0, { gravity: 17500, restitution: .24 });
     });
   };
   const positionTitles = () => {
@@ -88,8 +90,8 @@ function initializeServicePreview() {
       pair.offset = Math.min(0, headline.offsetTop + headline.offsetHeight + gap - title.offsetTop);
       headlineWidth = Math.max(1, headline.offsetWidth);
       title.style.setProperty('--service-title-offset', `${pair.offset}px`);
-      // A small overshoot is allowed above the destination, never below the viewport.
-      motion.bounds(pair.offset - Math.min(8, gap * .3), 0);
+      // Pickup stops exactly at its destination; only the floor has a rebound.
+      motion.bounds(pair.offset, 0);
     });
     syncTitles();
   };
@@ -114,20 +116,61 @@ function initializeServicePreview() {
     }
     exitingHeadline = null;
   };
+  const columnOrigin = (column: HTMLAnchorElement | null) => {
+    const headline = column?.querySelector<HTMLElement>('.service-column__description');
+    if (!column || !headline) return .5;
+    const columnBounds = column.getBoundingClientRect();
+    const headlineBounds = headline.getBoundingClientRect();
+    // The headline spans the page, so account for its gutters rather than using 50%.
+    return Math.max(0, Math.min(1,
+      (columnBounds.left + columnBounds.width / 2 - headlineBounds.left) / Math.max(1, headlineBounds.width)));
+  };
+  const columnStartOrigin = (column: HTMLAnchorElement) => {
+    const headline = column.querySelector<HTMLElement>('.service-column__description');
+    if (!headline) return columnOrigin(column);
+    const columnBounds = column.getBoundingClientRect();
+    const headlineBounds = headline.getBoundingClientRect();
+    return Math.max(0, Math.min(1,
+      (columnBounds.left - headlineBounds.left) / Math.max(1, headlineBounds.width)));
+  };
   const renderSwipe = (progress: number) => {
     if (!swipeRunning) return;
     const gap = 20 / headlineWidth;
     const edge = progress * (1 + gap);
     const incoming = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
-    // Both masks use one body, so the yellow strip cannot collapse or drift apart.
-    if (exitingHeadline) {
-      setMask(exitingHeadline,
-        headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
-        headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
-    }
-    if (incoming) {
-      setMask(incoming, headlineDirection < 0 ? Math.max(0, 1 - edge + gap) : 0,
-        headlineDirection < 0 ? 1 : Math.max(0, edge - gap));
+    if (headlineDirection === 0) {
+      if (exitingHeadline) {
+        // Collapse only what is visible, including a reveal interrupted before completion.
+        const origin = Math.max(outgoingMask.left, Math.min(outgoingMask.right, headlineOrigin));
+        setMask(exitingHeadline,
+          outgoingMask.left + (origin - outgoingMask.left) * progress,
+          outgoingMask.right + (origin - outgoingMask.right) * progress);
+      }
+      if (incoming) {
+        if (Math.abs(incomingMask.right - incomingMask.left) < .000001) {
+          // A fresh reveal grows by the same physical distance on both sides,
+          // keeping its visual center fixed on the requested origin.
+          const origin = incomingMask.left;
+          const farEdge = Math.max(origin, 1 - origin);
+          const radius = farEdge * progress;
+          setMask(incoming, Math.max(0, origin - radius), Math.min(1, origin + radius));
+        } else {
+          // Re-entry catches the existing partial mask instead of resetting it.
+          setMask(incoming, incomingMask.left * (1 - progress),
+            incomingMask.right + (1 - incomingMask.right) * progress);
+        }
+      }
+    } else {
+      // Both masks use one body, so the yellow strip cannot collapse or drift apart.
+      if (exitingHeadline) {
+        setMask(exitingHeadline,
+          headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
+          headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
+      }
+      if (incoming) {
+        setMask(incoming, headlineDirection < 0 ? Math.max(0, 1 - edge + gap) : 0,
+          headlineDirection < 0 ? 1 : Math.max(0, edge - gap));
+      }
     }
     if (progress === 1) {
       swipeRunning = false;
@@ -149,15 +192,20 @@ function initializeServicePreview() {
     activeHeadline = null;
     syncTitles(true);
   };
-  const startSwipe = (column: HTMLAnchorElement | null, direction: number) => {
+  const startSwipe = (column: HTMLAnchorElement | null, direction: number, origin = columnOrigin(column ?? activeHeadline)) => {
     const previous = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+    const incoming = column?.querySelector<HTMLElement>('.service-column__description');
+    headlineOrigin = origin;
+    // Catch an unfinished close in place when returning to the same service.
+    incomingMask = incoming && incoming === exitingHeadline
+      ? { ...masks.get(incoming) ?? { left: headlineOrigin, right: headlineOrigin } }
+      : { left: headlineOrigin, right: headlineOrigin };
     clearExit();
     outgoingMask = previous ? { ...masks.get(previous) ?? { left: 0, right: 1 } } : { left: 0, right: 1 };
     if (previous) delete previous.dataset.headlineActive;
     activeHeadline = column;
-    const incoming = column?.querySelector<HTMLElement>('.service-column__description');
     if (incoming) incoming.dataset.headlineActive = '';
-    headlineDirection = direction || 1;
+    headlineDirection = direction;
     swipeRunning = false;
     swipe.snap(0);
     if (reducedMotion.matches || !hover.matches || document.hidden || disposed) {
@@ -172,24 +220,18 @@ function initializeServicePreview() {
     }
     syncTitles();
   };
-  const concealHeadline = (direction: number) => startSwipe(null, direction);
-  const showHeadline = (column: HTMLAnchorElement, event?: PointerEvent) => {
+  const concealHeadline = (origin = columnOrigin(activeHeadline)) => startSwipe(null, 0, origin);
+  const showHeadline = (column: HTMLAnchorElement, pointerEntry = false) => {
     if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
     if (activeHeadline === column) return;
     const headline = column.querySelector<HTMLElement>('.service-column__description');
     if (!headline) return;
-    const index = columns.indexOf(column);
-    let direction = lastHeadlineIndex === null ? 0 : Math.sign(index - lastHeadlineIndex);
-    if (!direction && event) {
-      direction = Math.sign(event.movementX || 0);
-      if (!direction) {
-        const bounds = column.getBoundingClientRect();
-        direction = event.clientX < bounds.left + bounds.width / 2 ? 1 : -1;
-      }
-    }
-    // Keep the previous column across pointerleave so neighboring entries know the direction.
-    lastHeadlineIndex = index;
-    startSwipe(column, direction || 1);
+    // Only a direct change of service supplies a meaningful left/right direction.
+    const direction = activeHeadline ? Math.sign(columns.indexOf(column) - columns.indexOf(activeHeadline)) : 0;
+    // Pointer entry is passed explicitly because :hover may not be updated yet
+    // when pointerenter fires. Keyboard focus retains the center fallback.
+    const origin = direction === 0 && pointerEntry ? columnStartOrigin(column) : columnOrigin(column);
+    startSwipe(column, direction, origin);
   };
   const showFocusedHeadline = () => {
     const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
@@ -251,7 +293,7 @@ function initializeServicePreview() {
     const underneath = document.elementFromPoint(pointer.x, pointer.y)?.closest<HTMLAnchorElement>('[data-service-projects]');
     if (underneath !== active.column) {
       if (underneath && columnCovers.has(underneath)) {
-        showHeadline(underneath);
+        showHeadline(underneath, true);
         void activate(underneath);
       } else hideAll();
       return;
@@ -310,7 +352,7 @@ function initializeServicePreview() {
   };
   const follow = (event: PointerEvent, column: HTMLAnchorElement) => {
     if (event.pointerType === 'touch' || !hover.matches) { hideAll(); return; }
-    showHeadline(column, event);
+    showHeadline(column, true);
     pointer = { x: event.clientX, y: event.clientY };
     void activate(column);
     schedule();
@@ -322,10 +364,10 @@ function initializeServicePreview() {
     column.addEventListener('pointermove', (event) => follow(event, column), options);
     column.addEventListener('pointerleave', (event) => {
       const next = relatedColumn(event.relatedTarget);
-      if (next) showHeadline(next, event);
+      if (next) showHeadline(next, true);
       else {
         hide();
-        if (!showFocusedHeadline()) concealHeadline(Math.sign(event.movementX) || headlineDirection);
+        if (!showFocusedHeadline()) concealHeadline(columnStartOrigin(column));
       }
     }, options);
     column.addEventListener('pointercancel', hideAll, options);
@@ -334,7 +376,7 @@ function initializeServicePreview() {
       if (activeHeadline !== column || document.querySelector('.service-column:hover')) return;
       const next = relatedColumn(event.relatedTarget);
       if (next) showHeadline(next);
-      else concealHeadline(headlineDirection);
+      else concealHeadline();
     }, options);
   }
   window.addEventListener('resize', schedule, options);
@@ -344,8 +386,7 @@ function initializeServicePreview() {
   window.addEventListener('blur', hideAll, options);
   document.addEventListener('visibilitychange', () => { if (document.hidden) hideAll(); }, options);
   document.addEventListener('keydown', hide, { signal: abort.signal });
-  document.addEventListener('astro:before-preparation', hideAll, { signal: abort.signal });
-  hover.addEventListener('change', () => { hideAll(); lastHeadlineIndex = null; warmCovers(); positionTitles(); }, options);
+  hover.addEventListener('change', () => { hideAll(); warmCovers(); positionTitles(); }, options);
   reducedMotion.addEventListener('change', () => {
     if (reducedMotion.matches) {
       swipe.snap(1);

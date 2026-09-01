@@ -1,22 +1,16 @@
 ---
-import type { Service } from '../data/services';
 import ClientLogos from './ClientLogos.astro';
 
 interface Props {
-  cta?: Pick<Service, 'ctaText'>;
   showCta?: boolean;
 }
 
-const {
-  cta = { ctaText: 'Verwirrt? Wir erklären Ihnen gerne unsere Website.' },
-  showCta = true,
-} = Astro.props;
+const { showCta = true } = Astro.props;
 ---
 
 <footer class:list={['site-footer', { 'site-footer--compact': !showCta }]} id="kontakt">
   {showCta && (
     <div class="site-footer__cta">
-      <p>{cta.ctaText}</p>
       <a class="pill-link footer-contact-link" href="/kontakt">Kontakt aufnehmen</a>
     </div>
   )}
