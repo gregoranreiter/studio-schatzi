@@ -753,8 +753,6 @@ html:has(.service-detail-page) {
   display: grid;
   place-items: center;
   pointer-events: none;
-  opacity: 1;
-  transition: opacity .18s ease-out;
 }
 
 .services-overview-idle-art img {
@@ -764,8 +762,9 @@ html:has(.service-detail-page) {
   object-fit: contain;
 }
 
-.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) .services-overview-idle-art {
-  opacity: 0;
+.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) .services-overview-idle-art,
+.services-overview-grid:has(.service-column__description:is([data-headline-active], [data-headline-exiting])) .services-overview-idle-art {
+  visibility: hidden;
 }
 
 .service-overview-item {
@@ -1365,7 +1364,6 @@ html:has(.service-detail-page) {
   html { scroll-behavior: auto; }
   [data-header-glyph],
   [data-nav-indicator] { transition: none; }
-  .services-overview-idle-art { transition: none; }
   .service-column h2 { transition: none; }
   .project-card__image img { transition: none; }
   .page-swipe { display: none; }
