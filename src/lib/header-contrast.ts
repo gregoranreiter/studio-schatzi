@@ -23,11 +23,16 @@ export function composite(front: RGB, alpha: number, back: RGB): RGB {
   return [channel(0), channel(1), channel(2)];
 }
 
-export function chooseHeaderContrast(samples: RGB[], previous?: HeaderTone, uncertain = false) {
+export function chooseHeaderContrast(
+  samples: RGB[],
+  previous?: HeaderTone,
+  uncertain = false,
+  light: RGB = WHITE,
+) {
   const colors = samples.length ? samples : [WHITE];
   const scores = {
     dark: Math.min(...colors.map((color) => contrastRatio(INK, color))),
-    light: Math.min(...colors.map((color) => contrastRatio(WHITE, color))),
+    light: Math.min(...colors.map((color) => contrastRatio(light, color))),
   };
   // Keep a readable tone stable, or retain it when the surface cannot be sampled.
   // Otherwise choose the stronger contrast, even if neither tone reaches 4.5:1.
@@ -43,6 +48,7 @@ export function chooseGlyphContrast(
   viewport: { width: number; height: number },
   sample: (x: number, y: number) => { color: RGB; uncertain: boolean },
   previous?: HeaderTone,
+  light: RGB = WHITE,
 ) {
   const colors: RGB[] = [];
   let uncertain = false;
@@ -58,7 +64,7 @@ export function chooseGlyphContrast(
       }
     }
   }
-  return chooseHeaderContrast(colors, previous, uncertain);
+  return chooseHeaderContrast(colors, previous, uncertain, light);
 }
 
 function positionOffset(value: string, space: number): number | null {

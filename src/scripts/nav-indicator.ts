@@ -22,6 +22,11 @@ const resetNavigationMemory = () => {
   previousBreadcrumbGhost = null;
 };
 
+const publishIndicatorTravel = (distance: number) => {
+  if (Math.abs(distance) < .5) return;
+  document.documentElement.dataset.headerIndicatorTravel = distance > 0 ? 'right' : 'left';
+};
+
 function initializeNavIndicator() {
   cleanup();
   const nav = document.querySelector<HTMLElement>('.site-header nav');
@@ -70,6 +75,12 @@ function initializeNavIndicator() {
     && typeof ghost.querySelectorAll === 'function'
     && !!breadcrumb
     && !reducedMotion.matches;
+  // The source page already moved "Leistungen" and hid its siblings; reveal only
+  // the new breadcrumb pieces after the covered swap instead of popping them in.
+  const completeSourceMorph = previousMenuWasStandard
+    && movedOnSource
+    && !!breadcrumb
+    && !reducedMotion.matches;
   const morphToStandard = returningToOverview
     && !!labelMovement
     && !!standardPages
@@ -102,6 +113,9 @@ function initializeNavIndicator() {
     const ghostService = ghost.querySelector<HTMLElement>('a[href="/leistungen"]');
     if (ghostService) ghostService.style.visibility = 'hidden';
     labelMovement.label.style.transform = `translate3d(${labelMovement.x}px, ${labelMovement.y}px, 0)`;
+  }
+
+  if ((morphFromStandard || completeSourceMorph) && breadcrumb) {
     const separator = breadcrumb.querySelector<HTMLElement>('.nav-service-separator');
     const current = breadcrumb.querySelector<HTMLElement>('.nav-service-current');
     if (separator) separator.style.clipPath = 'inset(0 100% 0 0)';
@@ -162,8 +176,10 @@ function initializeNavIndicator() {
 
   const animateMenuMorph = () => {
     menuMorphAnimations = [];
-    if (morphFromStandard && ghost && breadcrumb) {
-      const outgoing = [...ghost.querySelectorAll<HTMLElement>('a:not([href="/leistungen"])')];
+    if ((morphFromStandard || completeSourceMorph) && breadcrumb) {
+      const outgoing = morphFromStandard && ghost
+        ? [...ghost.querySelectorAll<HTMLElement>('a:not([href="/leistungen"])')]
+        : [];
       const incoming = [
         breadcrumb.querySelector<HTMLElement>('.nav-service-separator'),
         breadcrumb.querySelector<HTMLElement>('.nav-service-current'),
@@ -176,7 +192,12 @@ function initializeNavIndicator() {
         ...incoming.map((item) => item.animate([
           { clipPath: 'inset(0 100% 0 0)' },
           { clipPath: 'inset(0 0 0 0)' },
-        ], { duration: 300, delay: 100, easing: 'cubic-bezier(.65, 0, .35, 1)', fill: 'both' })),
+        ], {
+          duration: 300,
+          delay: morphFromStandard ? 100 : 0,
+          easing: 'cubic-bezier(.65, 0, .35, 1)',
+          fill: 'both',
+        })),
       );
     }
     if (morphToStandard && returnGhost) {
@@ -220,6 +241,7 @@ function initializeNavIndicator() {
     const destination = pages.getBoundingClientRect();
     const x = destination.left - start.left;
     if (Math.abs(x) < .5) return;
+    publishIndicatorTravel(x);
     const movement = movingLabel.animate([
       { transform: 'translate3d(0, 0, 0)' },
       { transform: `translate3d(${x}px, 0, 0)` },
@@ -291,6 +313,9 @@ function initializeNavIndicator() {
       navBounds,
       animate && !reducedMotion.matches,
     );
+    if (animate && underlineBounds && previousBox) {
+      publishIndicatorTravel(underlineBounds.left - previousBox.left);
+    }
     stopAnimation();
     nav.dataset.indicatorReady = 'true';
 
@@ -327,6 +352,7 @@ function initializeNavIndicator() {
   const beginNavigation = (event: Event) => {
     const navigation = event as NavigationEvent;
     if (navigation.defaultPrevented || navigation.signal.aborted) return;
+    delete document.documentElement.dataset.headerIndicatorTravel;
     pendingNavigation = navigation;
     servicesReturningToOverview = !!nav.querySelector('.nav-pages--service-detail')
       && navigation.to.pathname === '/leistungen';

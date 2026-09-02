@@ -13,6 +13,7 @@
   --signal: #fffa91;
   --soft: #f0f0ed;
   --line: #d8d8d4;
+  --header-light: var(--paper);
 
   /* Four primitive spacing sizes. Compose larger gaps from these tokens. */
   --space-sm: clamp(.625rem, 1vw, 1rem);
@@ -228,7 +229,7 @@ h2, h3, h4, h5, h6 {
 }
 
 [data-header-glyph][data-header-tone='light'],
-[data-nav-indicator][data-header-tone='light'] { color: #fff; }
+[data-nav-indicator][data-header-tone='light'] { color: var(--header-light); }
 .wordmark [data-header-glyph] { fill: currentColor; }
 
 .desktop-nav {
@@ -742,6 +743,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 .services-overview-page {
   min-height: 100svh;
   background: var(--signal);
+  --header-light: var(--signal);
 }
 
 .services-overview-grid,
@@ -864,11 +866,11 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
   .service-column h2 {
-    transition: transform .28s cubic-bezier(.65, 0, .35, 1);
+    transition: transform .22s cubic-bezier(.65, 0, .35, 1);
   }
 
   .service-column:is(:hover, :focus-visible) h2 {
-    transition-duration: .196s;
+    transition-duration: .48s;
     transition-timing-function: ease-out;
     transform: translateY(var(--service-title-offset, -50svh));
   }
@@ -937,10 +939,10 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 }
 
 .service-detail-chapter {
-  grid-column: 1 / span 2;
+  grid-column: 2 / -1;
   padding: calc(var(--space-lg) + var(--space-sm)) 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md) var(--grid-gap);
   align-items: start;
 }
@@ -949,13 +951,16 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   grid-column: 1;
   margin: 0;
   max-width: 26ch;
+  color: var(--ink-muted);
 
   letter-spacing: 0;
 }
 
 .service-detail-chapter p {
-  grid-column: 2;
+  grid-column: 2 / -1;
   margin: 0;
+  font-size: var(--text-md);
+  line-height: var(--line-height-md);
 
   letter-spacing: 0;
 }
@@ -1035,7 +1040,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 }
 
 .studio-intro h1 {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
   min-width: 0;
   max-width: none;
 }
@@ -1066,6 +1071,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--signal);
+  --header-light: var(--signal);
 }
 
 .contact-page #main-content { flex: 1; }

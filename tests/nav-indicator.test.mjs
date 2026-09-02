@@ -48,6 +48,7 @@ test('pages without a selected menu item hide the underline', () => {
 
 function createIndicatorEnvironment() {
   const document = new EventTarget();
+  document.documentElement = { dataset: {} };
   const window = new EventTarget();
   const motion = Object.assign(new EventTarget(), { matches: false });
   const frames = new Map();
@@ -213,10 +214,11 @@ test('cached page restoration clears navigation memory without replaying the und
 });
 
 test('the underline starts before page loading and keeps its destination through the page swap', async () => {
-  const { observers, animations, indicator, flush, navigate, beginNavigation } = createIndicatorEnvironment();
+  const { document, observers, animations, indicator, flush, navigate, beginNavigation } = createIndicatorEnvironment();
   await flush();
   beginNavigation('/leistungen/markenentwicklung');
   assert.equal(animations.length, 1, 'The slide must start before the next document arrives');
+  assert.equal(document.documentElement.dataset.headerIndicatorTravel, 'right');
   assert.equal(animations[0].keyframes[1].transform, 'translate3d(120px, 46px, 0)');
   observers.at(-1).callback();
   await flush();

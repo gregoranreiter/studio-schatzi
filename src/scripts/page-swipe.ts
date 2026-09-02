@@ -7,6 +7,34 @@ const directions = [
   { name: 'top', enter: 'translate3d(0, -105%, 0)', exit: 'translate3d(0, 105%, 0)' },
   { name: 'bottom', enter: 'translate3d(0, 105%, 0)', exit: 'translate3d(0, -105%, 0)' },
 ];
+const primarySections = ['/projekte', '/leistungen', '/studio'];
+
+const primarySectionIndex = (pathname: string) => primarySections.findIndex((section) => (
+  pathname === section || pathname.startsWith(`${section}/`)
+));
+
+const primaryNavigationDirection = (from: URL, to: URL) => {
+  const fromIndex = primarySectionIndex(from.pathname);
+  const toIndex = primarySectionIndex(to.pathname);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return null;
+  // Direction names describe the edge the overlay starts from. An underline
+  // moving right therefore needs the overlay that enters from the left.
+  return toIndex > fromIndex ? directions[0] : directions[1];
+};
+
+const projectDetailNavigationDirection = (from: URL, to: URL) => (
+  from.pathname !== to.pathname && to.pathname.startsWith('/projekte/') ? directions[3] : null
+);
+
+const homeNavigationDirection = (to: URL) => to.pathname === '/' ? directions[2] : null;
+
+const takeIndicatorNavigationDirection = (doc: Document) => {
+  const travel = doc.documentElement.dataset.headerIndicatorTravel;
+  delete doc.documentElement.dataset.headerIndicatorTravel;
+  if (travel === 'right') return directions[0];
+  if (travel === 'left') return directions[1];
+  return null;
+};
 
 interface Swipe {
   overlay: HTMLElement;
@@ -79,8 +107,15 @@ export function initializePageSwipe(doc = document, host = window) {
     const load = event.loader;
     event.loader = async () => {
       if (event.signal.aborted || reducedMotion.matches) return load();
+      // Astro invokes the loader after every before-preparation listener. Read
+      // here so a remounted underline listener can publish its travel first.
+      const indicatorDirection = takeIndicatorNavigationDirection(doc);
+      const navigationDirection = homeNavigationDirection(event.to)
+        ?? projectDetailNavigationDirection(event.from, event.to)
+        ?? indicatorDirection
+        ?? primaryNavigationDirection(event.from, event.to);
       const swipe: Swipe = {
-        overlay, direction: directions[Math.floor(Math.random() * directions.length)],
+        overlay, direction: navigationDirection ?? directions[Math.floor(Math.random() * directions.length)],
         signal: event.signal, phase: 'covering', onAbort: () => { if (active === swipe) reset(); },
       };
       active = swipe;

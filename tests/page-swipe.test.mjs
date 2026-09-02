@@ -37,12 +37,15 @@ function environment({ reduced = false } = {}) {
   window.setTimeout = (callback) => { timers.set(++timerId, callback); return timerId; };
   window.clearTimeout = (id) => timers.delete(id);
   let cleanup = initializePageSwipe(document, window);
-  const begin = ({ loader = async () => {}, type = 'push' } = {}) => {
+  const begin = ({ loader = async () => {}, type = 'push', from = '/', to = '/kontakt', afterPreparation } = {}) => {
     const controller = new AbortController();
     const event = Object.assign(new Event('astro:before-preparation', { cancelable: true }), {
+      from: new URL(from, 'https://studioschatzi.at'),
+      to: new URL(to, 'https://studioschatzi.at'),
       loader, signal: controller.signal, navigationType: type,
     });
     document.dispatchEvent(event);
+    afterPreparation?.(document);
     const loading = event.loader();
     return { controller, event, loading };
   };
@@ -71,6 +74,76 @@ function environment({ reduced = false } = {}) {
   return { document, window, media, overlay, animations, timers, begin, finishCover, swap,
     dispose: () => cleanup(), restart: () => { cleanup = initializePageSwipe(document, window); } };
 }
+
+test('primary navigation wipes travel with the underline', async () => {
+  const env = environment();
+  for (const [from, to, enter, name] of [
+    ['/projekte', '/leistungen', 'translate3d(-105%, 0, 0)', 'left'],
+    ['/projekte/ein-projekt', '/studio', 'translate3d(-105%, 0, 0)', 'left'],
+    ['/studio', '/leistungen', 'translate3d(105%, 0, 0)', 'right'],
+    ['/leistungen/eine-leistung', '/projekte', 'translate3d(105%, 0, 0)', 'right'],
+  ]) {
+    const navigation = env.begin({ from, to });
+    assert.equal(env.animations.at(-1).keyframes[0].transform, enter);
+    assert.equal(env.overlay.dataset.swipeDirection, name);
+    navigation.controller.abort();
+    await navigation.loading;
+  }
+  env.dispose();
+});
+
+test('service breadcrumb wipes consume the live underline direction', async () => {
+  const env = environment();
+  for (const [travel, enter, name] of [
+    ['left', 'translate3d(105%, 0, 0)', 'right'],
+    ['right', 'translate3d(-105%, 0, 0)', 'left'],
+  ]) {
+    const navigation = env.begin({
+      from: '/leistungen/kampagnen',
+      to: '/leistungen',
+      afterPreparation: (document) => { document.documentElement.dataset.headerIndicatorTravel = travel; },
+    });
+    assert.equal(env.animations.at(-1).keyframes[0].transform, enter);
+    assert.equal(env.overlay.dataset.swipeDirection, name);
+    assert.equal(env.document.documentElement.dataset.headerIndicatorTravel, undefined);
+    navigation.controller.abort();
+    await navigation.loading;
+  }
+  env.dispose();
+});
+
+test('project detail wipes always rise from below', async () => {
+  const env = environment();
+  for (const from of ['/projekte', '/leistungen/kampagnen', '/studio']) {
+    const navigation = env.begin({
+      from,
+      to: '/projekte/auf-der-matte',
+      // A project detail overrides any horizontal underline travel.
+      afterPreparation: (document) => { document.documentElement.dataset.headerIndicatorTravel = 'left'; },
+    });
+    assert.equal(env.animations.at(-1).keyframes[0].transform, 'translate3d(0, 105%, 0)');
+    assert.equal(env.overlay.dataset.swipeDirection, 'bottom');
+    navigation.controller.abort();
+    await navigation.loading;
+  }
+  env.dispose();
+});
+
+test('logo transitions to the homepage always descend from above', async () => {
+  const env = environment();
+  for (const from of ['/projekte', '/projekte/auf-der-matte', '/leistungen/kampagnen', '/']) {
+    const navigation = env.begin({
+      from,
+      to: '/',
+      afterPreparation: (document) => { document.documentElement.dataset.headerIndicatorTravel = 'right'; },
+    });
+    assert.equal(env.animations.at(-1).keyframes[0].transform, 'translate3d(0, -105%, 0)');
+    assert.equal(env.overlay.dataset.swipeDirection, 'top');
+    navigation.controller.abort();
+    await navigation.loading;
+  }
+  env.dispose();
+});
 
 test('one cover and reveal run per navigation, after native snapshots are gone', async () => {
   const env = environment();

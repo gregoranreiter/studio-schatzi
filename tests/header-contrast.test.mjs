@@ -31,6 +31,13 @@ test('the foreground switches when its previous colour loses contrast', () => {
   assert.deepEqual(chooseHeaderContrast([[118, 118, 118]], 'dark'), { tone: 'light' });
 });
 
+test('page-coloured light tones are scored instead of pure white', () => {
+  const gray = [[118, 118, 118]];
+  assert.deepEqual(chooseHeaderContrast(gray, 'dark', false, [250, 249, 246]), { tone: 'dark' });
+  assert.deepEqual(chooseHeaderContrast(gray, 'dark', false, [255, 250, 145]), { tone: 'dark' });
+  assert.deepEqual(chooseHeaderContrast([[110, 110, 110]], 'dark', false, [255, 250, 145]), { tone: 'light' });
+});
+
 test('the stronger tone wins even when neither reaches the contrast target', () => {
   const gray = [119, 119, 119];
   assert.ok(contrastRatio([9, 9, 9], gray) < 4.5);

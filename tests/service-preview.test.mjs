@@ -112,10 +112,15 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     return hover;
   };
   window.setInterval = (callback, delay) => {
-    timers.set(++timerId, { callback, delay, next: time + delay });
+    timers.set(++timerId, { callback, delay, next: time + delay, repeat: true });
     return timerId;
   };
   window.clearInterval = (id) => timers.delete(id);
+  window.setTimeout = (callback, delay) => {
+    timers.set(++timerId, { callback, delay, next: time + delay, repeat: false });
+    return timerId;
+  };
+  window.clearTimeout = (id) => timers.delete(id);
   // Native browser frame methods reject an unrelated receiver, such as the clock adapter.
   window.requestAnimationFrame = function (callback) {
     assert.ok(this === undefined || this === window || this?.window === window,
@@ -168,7 +173,7 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     frames.clear();
     pending.forEach((callback) => callback(frameTime));
   };
-  const step = (milliseconds = 600) => {
+  const step = (milliseconds = 1200) => {
     for (let i = 0; i < Math.ceil(milliseconds / (1000 / 60)); i++) tick();
   };
   const flush = async () => {
@@ -182,8 +187,9 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
       const [id, timer] = [...timers.entries()].sort((a, b) => a[1].next - b[1].next)[0];
       if (timer.next > end) break;
       time = timer.next;
+      if (!timer.repeat) timers.delete(id);
       timer.callback();
-      if (timers.has(id)) timer.next += timer.delay;
+      if (timer.repeat && timers.has(id)) timer.next += timer.delay;
     }
     time = end;
   };
@@ -212,7 +218,9 @@ const circleMask = (column) => {
   return { radius, x, y };
 };
 const previewPosition = (preview) => preview.style.transform.match(/-?[\d.]+px/g).map(parseFloat);
+const titleX = (column) => Number(column.title.style.transform.match(/translate3d\(([-\d.]+)px/)[1]);
 const titleY = (column) => Number(column.title.style.transform.match(/, ([-\d.]+)px/)[1]);
+const titleAngle = (column) => Number(column.title.style.transform.match(/rotate\(([-\d.]+)deg/)[1]);
 const titleScaleY = (column) => Number(column.title.style.transform.match(/scale\([^,]+, ([\d.]+)\)/)[1]);
 const activeText = (column) => column.headline.dataset.headlineActive === '';
 const exitingText = (column) => column.headline.dataset.headlineExiting === '';
@@ -223,39 +231,27 @@ const origin = (column) => {
 };
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} should equal ${expected}`);
 
-test('directional masks share a 20px yellow gap at every frame without moving or fading the text', () => {
+test('service-to-service headline changes have no horizontal wipe while the design toggle is off', () => {
   const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0, { type: 'pointerenter', x: 20, y: 300, movementX: 2 });
   assert.deepEqual(circleMask(columns[0]), { radius: 0, x: -4, y: 180 });
   step();
   leave(0, 2);
   move(2, { type: 'pointerenter', x: 550 });
-  assert.equal(exitingText(columns[0]), true);
+  assert.equal(exitingText(columns[0]), false);
+  assert.equal(activeText(columns[0]), false);
   assert.equal(activeText(columns[2]), true);
-  for (let i = 0; i < 10; i++) {
-    tick();
-    const old = mask(columns[0]);
-    const next = mask(columns[2]);
-    assert.ok(Math.abs((old.left - next.right) * columns[0].headline.offsetWidth - 20) < .001);
-    assert.deepEqual(Object.keys(columns[2].headline.style), ['clipPath'], 'Text position and opacity stay untouched');
-  }
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
   const before = columns[2].headline.style.clipPath;
   move(2, { x: 560, movementX: -4 });
-  assert.equal(columns[2].headline.style.clipPath, before, 'Pointer movement in the same column does not restart a wipe');
-  step();
-  assert.equal(exitingText(columns[0]), false);
-  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
+  tick();
+  assert.equal(columns[2].headline.style.clipPath, before, 'Pointer movement in the same column stays still');
 
   leave(2, 1);
   move(1, { x: 420 });
-  for (let i = 0; i < 10; i++) {
-    tick();
-    const old = mask(columns[2]);
-    const next = mask(columns[1]);
-    assert.ok(Math.abs((next.left - old.right) * columns[1].headline.offsetWidth - 20) < .001,
-      'Moving left reverses the sweep while keeping the same gap');
-  }
-  step();
+  assert.equal(activeText(columns[2]), false);
+  assert.equal(activeText(columns[1]), true);
+  assert.equal(exitingText(columns[2]), false);
   assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
 });
 
@@ -324,7 +320,7 @@ test('leaving contracts the circular mask toward the exit point and reentry catc
     assert.ok(circleMask(env.columns[index]).radius > caught.radius);
     env.step();
     env.leave(index);
-    env.step();
+    env.step(1800);
     assert.equal(env.columns.some(exitingText), false);
     assert.equal(env.columns.some(activeText), false);
     assert.equal(env.frames.size, 0);
@@ -352,17 +348,16 @@ test('keyboard focus uses the same physical motion and resumes after hover ends'
   near(mask(columns[0]).left, origin(columns[0]));
   near(mask(columns[0]).right, origin(columns[0]));
   focus(2);
-  assert.equal(mask(columns[2]).right, 0);
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
   step();
   assert.ok(titleY(columns[2]) < 0);
   focus(1);
-  assert.ok(mask(columns[1]).left >= 1);
+  assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
   move(3, { type: 'pointerenter', x: 800 });
   focus(1);
   assert.equal(activeText(columns[3]), true, 'Hover takes precedence over keyboard focus');
   leave(3);
   assert.equal(activeText(columns[1]), true);
-  assert.ok(mask(columns[1]).left >= 1);
   step();
   assert.equal(titleY(columns[3]), 0);
   assert.equal(titleY(columns[1]), parseFloat(columns[1].title.style['--service-title-offset']));
@@ -392,7 +387,7 @@ test('a brief hover releases the title from its current height with no remaining
   assert.equal(titleScaleY(columns[0]), 1);
 });
 
-test('the title stops at the raised position and lands faster with a restrained floor bounce', () => {
+test('the title rises deliberately, then lands quickly with a visible floor bounce', () => {
   const { columns, move, leave, step, tick } = createPreviewEnvironment();
   move(0);
   const liftScales = [];
@@ -405,18 +400,30 @@ test('the title stops at the raised position and lands faster with a restrained 
   leave(0);
   let landingFrame = -1;
   const landingScales = [];
+  const landingPositions = [];
+  const landingDrift = [];
+  const landingAngles = [];
   for (let i = 0; i < 40; i++) {
     tick();
     if (titleY(columns[0]) === 0 && landingFrame === -1) landingFrame = i;
     assert.ok(titleY(columns[0]) <= 0, 'The title cannot fall below its baseline');
+    landingPositions.push(titleY(columns[0]));
+    landingDrift.push(titleX(columns[0]));
+    landingAngles.push(titleAngle(columns[0]));
     landingScales.push(titleScaleY(columns[0]));
   }
-  assert.ok(landingFrame >= 0 && landingFrame < 15, 'A full-height fall lands within 250ms');
+  assert.ok(landingFrame >= 0 && landingFrame < 13, 'A full-height fall lands within 217ms');
+  assert.ok(Math.min(...landingPositions.slice(landingFrame + 1)) < -10,
+    'The title rebounds visibly after its first floor impact');
+  assert.ok(Math.max(...landingDrift.map(Math.abs)) > 1, 'The falling title drifts off the locked Y axis');
+  assert.ok(Math.max(...landingAngles.map(Math.abs)) > 3, 'The falling title tumbles visibly');
   const minimumLandingScale = Math.min(...landingScales);
   assert.ok(minimumLandingScale < .99 && minimumLandingScale >= .955,
     `Landing compression ${minimumLandingScale} should stay between .955 and .99`);
   step();
   assert.equal(titleY(columns[0]), 0);
+  assert.equal(titleX(columns[0]), 0);
+  assert.equal(titleAngle(columns[0]), 0);
   assert.equal(titleScaleY(columns[0]), 1);
 });
 
@@ -440,29 +447,30 @@ test('rehover catches a falling title in place, and reduced motion stops the fal
   assert.equal(frames.size, 0);
 });
 
-test('interrupted swipes retain the visible part of the old headline and discard older exits', () => {
+test('initial circles can cancel into a stable service-to-service cut', () => {
   const { columns, move, leave, tick, step, document, frames } = createPreviewEnvironment();
   move(0, { x: 20, movementX: 2 });
   tick();
   const partial = mask(columns[0]);
   assert.ok(partial.right > 0 && partial.right < 1);
   move(1);
-  assert.deepEqual(mask(columns[0]), partial, 'The partially revealed text cannot flash fully visible on interruption');
+  assert.equal(circleMask(columns[0]), null, 'Hovering another service cancels the opening circle');
+  assert.equal(exitingText(columns[0]), false, 'The cancelled circle does not remain as an outgoing headline');
+  assert.equal(columns[0].headline.style.clipPath, '');
+  assert.equal(activeText(columns[1]), true);
+  assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
   tick();
   move(2);
   assert.equal(exitingText(columns[0]), false);
-  assert.equal(exitingText(columns[1]), true);
+  assert.equal(activeText(columns[1]), false);
   assert.equal(activeText(columns[2]), true);
-  const before = columns[2].headline.style.clipPath;
-  move(2, { type: 'pointerenter' });
-  assert.equal(columns[2].headline.style.clipPath, before, 'Duplicate enter events do not restart motion');
-  tick();
-  const last = mask(columns[2]);
-  leave(2, null, -3, 540, 300);
-  const radialExit = circleMask(columns[2]);
-  assert.ok(radialExit && radialExit.radius > 0, 'Leaving converts the current visible amount into the exit circle');
-  assert.ok(mask(columns[2]).right - mask(columns[2]).left < 1 || last.right - last.left === 1,
-    'An interrupted exit cannot flash a partial reveal fully open');
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 });
+  move(3);
+  assert.equal(activeText(columns[2]), false);
+  assert.equal(activeText(columns[3]), true);
+  assert.equal(columns.some(exitingText), false);
+  leave(3, null, -3, 540, 300);
+  assert.ok(circleMask(columns[3]), 'Leaving still uses the radial exit');
   step();
   assert.equal(columns.some(exitingText), false);
   assert.equal(columns.some(activeText), false);
@@ -473,6 +481,36 @@ test('interrupted swipes retain the visible part of the old headline and discard
   assert.equal(columns.some(exitingText), false);
   assert.equal(columns.some(activeText), false);
   assert.equal(frames.size, 0);
+});
+
+test('rapid crossings delay only the large headline and skip intermediate services', async () => {
+  const { columns, move, flush, advance, visible } = createPreviewEnvironment();
+  move(0);
+  await flush();
+  assert.equal(activeText(columns[0]), true);
+
+  move(1, { x: 360, movementX: 48 });
+  await flush();
+  assert.equal(activeText(columns[0]), true, 'The previous headline stays visible during hover intent');
+  assert.deepEqual(mask(columns[0]), { left: 0, right: 1 }, 'Hover intent cannot leave the held text clipped');
+  assert.equal(activeText(columns[1]), false);
+  assert.ok(titleY(columns[1]) < 0, 'The small service title still reacts immediately');
+  assert.deepEqual(visible(), ['koa'], 'The preview image still switches immediately');
+
+  move(1, { x: 366, movementX: 6 });
+  await flush();
+  assert.equal(activeText(columns[0]), true, 'Slowing down over the same service does not start a partial wipe');
+  assert.deepEqual(mask(columns[0]), { left: 0, right: 1 });
+
+  move(2, { x: 600, movementX: 52 });
+  await flush();
+  advance(99);
+  assert.equal(activeText(columns[0]), true);
+  assert.equal(activeText(columns[1]), false, 'A crossed service never flashes its headline');
+  advance(1);
+  assert.equal(activeText(columns[2]), true, 'The final headline appears after hover intent settles');
+  assert.deepEqual(mask(columns[2]), { left: 0, right: 1 }, 'The confirmed fast target never hangs in a clipped state');
+  assert.equal(columns.some(exitingText), false);
 });
 
 test('reduced motion settles all bodies immediately and leaves the selected headline visible', async () => {
@@ -544,7 +582,7 @@ test('hover title stays just below its headline after text reflow and stops meas
   assert.equal(resizeObservers.size, 0);
 });
 
-test('covers cut every 500ms and follow horizontal pointer movement with inertia on a fixed rail', async () => {
+test('covers cut every second and follow horizontal pointer movement with slower inertia on a fixed rail', async () => {
   const { preview, timers, move, flush, advance, visible, step } = createPreviewEnvironment();
   move(0, { type: 'pointerenter' });
   await flush();
@@ -554,11 +592,11 @@ test('covers cut every 500ms and follow horizontal pointer movement with inertia
   assert.equal(originalX, 152);
   assert.equal(originalY + parseFloat(preview.style.height), 846);
   assert.equal(timers.size, 1);
-  advance(499);
+  advance(999);
   assert.deepEqual(visible(), ['matte']);
   advance(1);
   assert.deepEqual(visible(), ['gretzl']);
-  advance(500);
+  advance(1000);
   assert.deepEqual(visible(), ['matte']);
   move(0, { x: 220, y: 350 });
   await flush();
@@ -583,7 +621,7 @@ test('changing services preserves the image position while resetting the cover a
   assert.deepEqual(previewPosition(preview), [382, originalY], 'Changing columns follows the cursor on the same horizontal rail');
   assert.deepEqual(visible(), ['koa']);
   assert.equal(timers.size, 1);
-  advance(500);
+  advance(1000);
   assert.deepEqual(visible(), ['chrispi']);
 });
 
@@ -656,7 +694,7 @@ test('reduced motion keeps a still cover and touch input does not display a hove
   assert.equal(timers.size, 0);
   motion.matches = false;
   motion.dispatchEvent(new Event('change'));
-  advance(500);
+  advance(1000);
   assert.deepEqual(visible(), ['gretzl']);
   move(0, { pointerType: 'touch' });
   await flush();

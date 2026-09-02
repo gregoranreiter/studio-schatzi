@@ -3,9 +3,16 @@ import { createPhysicalMotion } from '../lib/physical-motion';
 
 type PointerPoint = { x: number; y: number };
 type CircleMask = { point: PointerPoint; progress: number };
+type QueuedHeadline = {
+  column: HTMLAnchorElement | null;
+  pointerEntry: boolean;
+  point: PointerPoint | null;
+};
 
 let cleanup = () => {};
 let mountedPreview: HTMLElement | null = null;
+// Temporary design toggle: keep the X-wipe implementation ready for comparison.
+const directionalHeadlineSwipe = false;
 
 function initializeServicePreview() {
   const preview = document.querySelector<HTMLElement>('[data-service-preview]');
@@ -36,7 +43,11 @@ function initializeServicePreview() {
   let frame = 0;
   let disposed = false;
   let activeHeadline: HTMLAnchorElement | null = null;
+  let activeTitle: HTMLAnchorElement | null = null;
   let exitingHeadline: HTMLElement | null = null;
+  let headlineIntentTimer = 0;
+  let intendedHeadline: HTMLAnchorElement | null = null;
+  let queuedHeadline: QueuedHeadline | null = null;
   let headlineDirection = 0;
   let headlineOrigin = .5;
   const physics = createPhysicalMotion({
@@ -50,20 +61,22 @@ function initializeServicePreview() {
   let radialPoint: PointerPoint | null = null;
   let radialOutgoingStart = 1;
   let radialIncomingStart = 0;
-  let directionalOutgoingCircle: CircleMask | null = null;
   let headlineWidth = 1;
   let swipeRunning = false;
 
-  const titlePairs = columns.flatMap((column) => {
+  const titlePairs = columns.flatMap((column, columnIndex) => {
     const title = column.querySelector<HTMLElement>('h2');
     const headline = column.querySelector<HTMLElement>('.service-column__description');
     if (!title || !headline) return [];
     let position = 0;
+    let lateral = 0;
+    let angle = 0;
     let stretch = 0;
+    const tumble = { direction: columnIndex % 2 ? 1 : -1 };
     const renderTitle = () => {
       const scaleY = 1 + stretch;
       title.style.transform = hover.matches
-        ? `translate3d(0, ${position}px, 0) scale(${1 / Math.sqrt(scaleY)}, ${scaleY})`
+        ? `translate3d(${lateral}px, ${position}px, 0) rotate(${angle}deg) scale(${1 / Math.sqrt(scaleY)}, ${scaleY})`
         : '';
     };
     const material = physics.value(0, { frequency: 30, damping: .55, precision: .0001 }, (value) => {
@@ -71,27 +84,55 @@ function initializeServicePreview() {
       renderTitle();
     });
     material.bounds(-.045, .035);
-    const motion = physics.value(0, { frequency: 36, damping: .72, launch: .65 }, (y, velocity, impact) => {
+    const drift = physics.value(0, { frequency: 18, damping: .45, precision: .01 }, (value) => {
+      lateral = value;
+      renderTitle();
+    });
+    drift.bounds(-8, 8);
+    const tilt = physics.value(0, { frequency: 16, damping: .42, precision: .01 }, (value) => {
+      angle = value;
+      renderTitle();
+    });
+    tilt.bounds(-16, 16);
+    const motion = physics.value(0, { frequency: 20, damping: .72, launch: .48 }, (y, velocity, impact) => {
       position = y;
       // A slight stretch follows the pull; the floor impact briefly compresses it.
       material.to(Math.min(.03, Math.abs(velocity) / 100000));
       // Only the floor landing compresses the title; pickup stops cleanly at the top.
-      if (impact && y >= -.5) material.kick(-Math.min(2.4, impact / 1100));
+      if (impact && y >= -.5) {
+        material.kick(-Math.min(2.4, impact / 1100));
+        drift.kick(tumble.direction * Math.min(70, impact / 55));
+        tilt.kick(tumble.direction * Math.min(240, impact / 16));
+        tumble.direction *= -1;
+      }
       renderTitle();
     });
     motion.snap(0);
-    return [{ column, title, headline, motion, material, offset: 0 }];
+    return [{ column, title, headline, motion, material, drift, tilt, tumble, offset: 0 }];
   });
   const syncTitles = (immediate = false) => {
-    titlePairs.forEach(({ column, motion, material, offset }) => {
+    titlePairs.forEach(({ column, motion, material, drift, tilt, tumble, offset }) => {
       if (hover.matches) column.dataset.servicePhysics = '';
       else delete column.dataset.servicePhysics;
-      const target = hover.matches && activeHeadline === column ? offset : 0;
+      const target = hover.matches && activeTitle === column ? offset : 0;
       if (immediate || reducedMotion.matches || !hover.matches) {
         motion.snap(target);
         material.snap(0);
-      } else if (activeHeadline === column) motion.to(target);
-      else motion.drop(0, { gravity: 17500, restitution: .24 });
+        drift.snap(0);
+        tilt.snap(0);
+      } else if (activeTitle === column) {
+        motion.to(target);
+        drift.to(0);
+        tilt.to(0);
+      } else {
+        const released = motion.value < -.5;
+        motion.drop(0, { gravity: 22000, restitution: .32 });
+        if (released) {
+          tumble.direction *= -1;
+          drift.kick(tumble.direction * 48);
+          tilt.kick(tumble.direction * 180);
+        }
+      }
     });
   };
   const positionTitles = () => {
@@ -165,7 +206,7 @@ function initializeServicePreview() {
   };
   const renderSwipe = (progress: number) => {
     if (!swipeRunning) return;
-    const gap = 20 / headlineWidth;
+    const gap = 40 / headlineWidth;
     const edge = progress * (1 + gap);
     const incoming = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
     if (headlineDirection === 0) {
@@ -197,14 +238,9 @@ function initializeServicePreview() {
     } else {
       // Both masks use one body, so the yellow strip cannot collapse or drift apart.
       if (exitingHeadline) {
-        if (directionalOutgoingCircle) {
-          setCircleMask(exitingHeadline, directionalOutgoingCircle.point,
-            directionalOutgoingCircle.progress * (1 - progress));
-        } else {
-          setMask(exitingHeadline,
-            headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
-            headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
-        }
+        setMask(exitingHeadline,
+          headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
+          headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
       }
       if (incoming) {
         setMask(incoming, headlineDirection < 0 ? Math.max(0, 1 - edge + gap) : 0,
@@ -215,11 +251,34 @@ function initializeServicePreview() {
       swipeRunning = false;
       clearExit();
       if (incoming) setMask(incoming, 0, 1);
+      const queued = queuedHeadline;
+      queuedHeadline = null;
+      if (queued?.column) showHeadline(queued.column, queued.pointerEntry, queued.point);
+      else if (queued) startSwipe(null, 0, columnOrigin(activeHeadline), queued.point);
     }
   };
-  const swipe = physics.value(0, { frequency: 24, damping: 1, launch: 1, precision: .001 }, renderSwipe);
+  const swipe = physics.value(0, { frequency: 12, damping: 1, launch: .75, precision: .001 }, renderSwipe);
   swipe.bounds(0, 1);
+  const cancelHeadlineIntent = () => {
+    window.clearTimeout(headlineIntentTimer);
+    headlineIntentTimer = 0;
+    intendedHeadline = null;
+  };
+  const selectTitle = (column: HTMLAnchorElement | null) => {
+    if (activeTitle === column) return;
+    activeTitle = column;
+    syncTitles();
+  };
+  const holdHeadlineForIntent = () => {
+    swipeRunning = false;
+    swipe.stop();
+    clearExit();
+    const current = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+    if (current) setMask(current, 0, 1);
+  };
   const hideHeadline = () => {
+    cancelHeadlineIntent();
+    queuedHeadline = null;
     swipeRunning = false;
     swipe.stop();
     clearExit();
@@ -230,6 +289,7 @@ function initializeServicePreview() {
     masks.clear();
     circleMasks.clear();
     activeHeadline = null;
+    activeTitle = null;
     syncTitles(true);
   };
   const startSwipe = (
@@ -241,6 +301,7 @@ function initializeServicePreview() {
     const previous = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
     const incoming = column?.querySelector<HTMLElement>('.service-column__description');
     const previousCircle = previous ? circleMasks.get(previous) ?? null : null;
+    const cancelOpeningCircle = direction !== 0 && !!previousCircle;
     const caughtExiting = !!incoming && incoming === exitingHeadline;
     const caughtCircle = caughtExiting ? circleMasks.get(incoming) ?? null : null;
     headlineOrigin = origin;
@@ -249,13 +310,21 @@ function initializeServicePreview() {
       ? { ...masks.get(incoming) ?? { left: headlineOrigin, right: headlineOrigin } }
       : { left: headlineOrigin, right: headlineOrigin };
     clearExit();
-    outgoingMask = previous ? { ...masks.get(previous) ?? { left: 0, right: 1 } } : { left: 0, right: 1 };
+    // A service-to-service hover cancels an unfinished opening circle outright.
+    // Directional wipes only hand off headlines that finished that first reveal.
+    if (cancelOpeningCircle && previous) {
+      previous.style.clipPath = '';
+      masks.delete(previous);
+      circleMasks.delete(previous);
+    }
+    outgoingMask = previous && !cancelOpeningCircle
+      ? { ...masks.get(previous) ?? { left: 0, right: 1 } }
+      : { left: 0, right: 1 };
     radialPoint = direction === 0 ? point : null;
     radialOutgoingStart = previousCircle?.progress
       ?? (previous ? Math.max(0, outgoingMask.right - outgoingMask.left) : 1);
     radialIncomingStart = caughtCircle?.progress
       ?? (caughtExiting ? Math.max(0, incomingMask.right - incomingMask.left) : 0);
-    directionalOutgoingCircle = direction !== 0 ? previousCircle : null;
     if (previous) delete previous.dataset.headlineActive;
     activeHeadline = column;
     if (incoming) incoming.dataset.headlineActive = '';
@@ -266,22 +335,75 @@ function initializeServicePreview() {
       if (previous) { previous.style.clipPath = ''; masks.delete(previous); }
       if (incoming) setMask(incoming, 0, 1);
     } else {
-      exitingHeadline = previous ?? null;
+      exitingHeadline = cancelOpeningCircle ? null : previous ?? null;
       if (exitingHeadline) exitingHeadline.dataset.headlineExiting = '';
       swipeRunning = true;
       renderSwipe(0);
       swipe.to(1);
     }
-    syncTitles();
   };
-  const concealHeadline = (point: PointerPoint | null = null) => startSwipe(null, 0, columnOrigin(activeHeadline), point);
-  const showHeadline = (column: HTMLAnchorElement, pointerEntry = false, point: PointerPoint | null = null) => {
+  const concealHeadline = (point: PointerPoint | null = null) => {
+    cancelHeadlineIntent();
+    if (swipeRunning && headlineDirection !== 0) {
+      queuedHeadline = { column: null, pointerEntry: false, point };
+      return;
+    }
+    startSwipe(null, 0, columnOrigin(activeHeadline), point);
+  };
+  const showHeadline = (
+    column: HTMLAnchorElement,
+    pointerEntry = false,
+    point: PointerPoint | null = null,
+    delay = 0,
+    instant = false,
+  ) => {
     if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
-    if (activeHeadline === column) return;
+    if (swipeRunning && headlineDirection !== 0) {
+      cancelHeadlineIntent();
+      queuedHeadline = activeHeadline === column ? null : { column, pointerEntry, point };
+      return;
+    }
+    if (activeHeadline === column) { cancelHeadlineIntent(); return; }
+    if (intendedHeadline === column) return;
+    if (delay) {
+      cancelHeadlineIntent();
+      holdHeadlineForIntent();
+      intendedHeadline = column;
+      headlineIntentTimer = window.setTimeout(() => {
+        headlineIntentTimer = 0;
+        intendedHeadline = null;
+        const hovered = document.querySelector<HTMLAnchorElement>('.service-column:hover');
+        const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
+        if (hovered !== column && focused !== column) return;
+        showHeadline(column, pointerEntry, point, 0, true);
+      }, 100);
+      return;
+    }
+    cancelHeadlineIntent();
     const headline = column.querySelector<HTMLElement>('.service-column__description');
     if (!headline) return;
+    if (instant) {
+      swipeRunning = false;
+      swipe.stop();
+      clearExit();
+      const previous = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
+      if (previous) {
+        delete previous.dataset.headlineActive;
+        previous.style.clipPath = '';
+        masks.delete(previous);
+        circleMasks.delete(previous);
+      }
+      activeHeadline = column;
+      headline.dataset.headlineActive = '';
+      setMask(headline, 0, 1);
+      return;
+    }
     // Only a direct change of service supplies a meaningful left/right direction.
     const direction = activeHeadline ? Math.sign(columns.indexOf(column) - columns.indexOf(activeHeadline)) : 0;
+    if (direction !== 0 && !directionalHeadlineSwipe) {
+      showHeadline(column, pointerEntry, point, 0, true);
+      return;
+    }
     // Pointer entry is passed explicitly because :hover may not be updated yet
     // when pointerenter fires. Keyboard focus retains the center fallback.
     const origin = direction === 0 && pointerEntry ? columnStartOrigin(column) : columnOrigin(column);
@@ -290,6 +412,7 @@ function initializeServicePreview() {
   const showFocusedHeadline = () => {
     const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
     if (!focused || document.querySelector('.service-column:hover')) return false;
+    selectTitle(focused);
     showHeadline(focused);
     return true;
   };
@@ -309,7 +432,7 @@ function initializeServicePreview() {
     if (hover.matches) covers.forEach((image) => void load(image));
   };
   let previewBox: ReturnType<typeof placeServicePreview> | null = null;
-  const imageX = physics.value(0, { frequency: 22, damping: .82, precision: .15 }, (x) => {
+  const imageX = physics.value(0, { frequency: 11, damping: .82, precision: .15 }, (x) => {
     if (previewBox) preview.style.transform = `translate3d(${x}px, ${previewBox.y}px, 0)`;
   });
   const stopRotation = () => {
@@ -337,7 +460,7 @@ function initializeServicePreview() {
       if (!active) return;
       active.index = (active.index + 1) % active.images.length;
       showImage();
-    }, 500);
+    }, 1000);
   };
 
   const position = () => {
@@ -407,7 +530,9 @@ function initializeServicePreview() {
   const follow = (event: PointerEvent, column: HTMLAnchorElement) => {
     if (event.pointerType === 'touch' || !hover.matches) { hideAll(); return; }
     const point = { x: event.clientX, y: event.clientY };
-    showHeadline(column, true, point);
+    const rapid = Math.hypot(event.movementX ?? 0, event.movementY ?? 0) >= 12;
+    selectTitle(column);
+    showHeadline(column, true, point, rapid ? 100 : 0);
     pointer = point;
     void activate(column);
     schedule();
@@ -421,10 +546,16 @@ function initializeServicePreview() {
       const next = relatedColumn(event.relatedTarget);
       const point = Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
         ? { x: event.clientX, y: event.clientY } : null;
-      if (next) showHeadline(next, true, point);
+      if (next) {
+        selectTitle(next);
+      }
       else {
         hide();
-        if (!showFocusedHeadline()) concealHeadline(point);
+        if (!showFocusedHeadline()) {
+          cancelHeadlineIntent();
+          selectTitle(null);
+          concealHeadline(point);
+        }
       }
     }, options);
     column.addEventListener('pointercancel', hideAll, options);
@@ -432,8 +563,13 @@ function initializeServicePreview() {
     column.addEventListener('blur', (event) => {
       if (activeHeadline !== column || document.querySelector('.service-column:hover')) return;
       const next = relatedColumn(event.relatedTarget);
-      if (next) showHeadline(next);
-      else concealHeadline();
+      if (next) {
+        selectTitle(next);
+        showHeadline(next);
+      } else {
+        selectTitle(null);
+        concealHeadline();
+      }
     }, options);
   }
   window.addEventListener('resize', schedule, options);

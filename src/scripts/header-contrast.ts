@@ -37,6 +37,21 @@ function rgba(value: string): { color: RGB; alpha: number } | null {
   return { color: [channels[0], channels[1], channels[2]], alpha: channels[3] ?? 1 };
 }
 
+function cssColor(value: string, style: CSSStyleDeclaration): RGB | null {
+  let resolved = value.trim();
+  const seen = new Set<string>();
+  while (/^var\(/.test(resolved)) {
+    const variable = resolved.match(/^var\(\s*(--[\w-]+)\s*\)$/)?.[1];
+    if (!variable || seen.has(variable)) return null;
+    seen.add(variable);
+    resolved = style.getPropertyValue(variable).trim();
+  }
+  const functional = rgba(resolved);
+  if (functional) return functional.color;
+  const hex = resolved.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+  return hex ? [parseInt(hex[1], 16), parseInt(hex[2], 16), parseInt(hex[3], 16)] : null;
+}
+
 function initializeHeaderContrast() {
   const header = document.querySelector<HTMLElement>('.site-header');
   // Initial page-load follows this module's first run; do not remount the same header.
@@ -67,6 +82,9 @@ function initializeHeaderContrast() {
     };
     const swipe = document.documentElement.dataset.swipePhase
       ? document.querySelector<HTMLElement>('.page-swipe') : null;
+    const headerStyle = styleFor(header);
+    const adaptiveLight = cssColor(headerStyle.getPropertyValue('--header-light'), headerStyle)
+      ?? ([255, 255, 255] as RGB);
 
     const sample = (x: number, y: number): { color: RGB; uncertain: boolean } => {
       const layers: Array<{ color: RGB; alpha: number }> = [];
@@ -121,7 +139,7 @@ function initializeHeaderContrast() {
     const viewport = { width: innerWidth, height: innerHeight };
     const changes = glyphs.map((glyph) => {
       const previous = glyph.dataset.headerTone as HeaderTone | undefined;
-      const { tone } = chooseGlyphContrast(rectFor(glyph), viewport, sample, previous);
+      const { tone } = chooseGlyphContrast(rectFor(glyph), viewport, sample, previous, adaptiveLight);
       return { glyph, tone, previous };
     });
     // Finish sampling before changing colours, so style writes cannot interrupt the reads.
