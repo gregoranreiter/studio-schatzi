@@ -3,7 +3,6 @@ import {
   accessCookieName,
   createAccessToken,
   hasValidAccessCookie,
-  hasValidBasicAuthorization,
   secretsMatch,
 } from './src/lib/basic-auth.js';
 
@@ -64,10 +63,9 @@ const loginPage = (destination: string, invalid = false) => `<!doctype html>
 </html>`;
 
 export default async function middleware(request: Request) {
-  const username = process.env.BASIC_AUTH_USER;
   const password = process.env.BASIC_AUTH_PASSWORD;
 
-  if (!username || !password) {
+  if (!password) {
     return new Response('Site access is not configured.', {
       status: 503,
       headers: noStoreHeaders,
@@ -75,7 +73,7 @@ export default async function middleware(request: Request) {
   }
 
   const url = new URL(request.url);
-  const accessToken = await createAccessToken(username, password);
+  const accessToken = await createAccessToken(password);
 
   if (url.pathname === '/login') {
     if (request.method === 'POST') {
@@ -100,16 +98,14 @@ export default async function middleware(request: Request) {
     return new Response(loginPage(destination), { status: 200, headers: loginHeaders });
   }
 
-  const authorized = hasValidBasicAuthorization(
-    request.headers.get('authorization'), username, password,
-  ) || hasValidAccessCookie(request.headers.get('cookie'), accessToken);
-
-  if (!authorized) {
-    return new Response('Authentication required.', {
-      status: 401,
+  if (!hasValidAccessCookie(request.headers.get('cookie'), accessToken)) {
+    const loginUrl = new URL('/login', url);
+    loginUrl.searchParams.set('next', `${url.pathname}${url.search}`);
+    return new Response(null, {
+      status: 303,
       headers: {
         ...noStoreHeaders,
-        'WWW-Authenticate': 'Basic realm="Studio Schatzi", charset="UTF-8"',
+        Location: `${loginUrl.pathname}${loginUrl.search}`,
       },
     });
   }
