@@ -743,20 +743,25 @@ html:has(.service-detail-page) {
   min-height: 100svh;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  background-color: var(--signal);
-  background-image: url('/images/services/gretzl-character-black.png');
-  background-position: center calc(50% + var(--header-height) / 2);
-  background-repeat: no-repeat;
-  background-size: min(30.8vw, 43.4svh) auto;
+  background: var(--signal);
 }
 
-.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) {
-  background-image: none;
+.services-idle-illustration {
+  position: fixed;
+  top: calc(50% + var(--header-height) / 2);
+  left: 50%;
+  z-index: 1;
+  width: min(30.8vw, 43.4svh);
+  height: auto;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.services-overview-page:has(.service-column:is(:hover, :focus-visible)) .services-idle-illustration {
+  visibility: hidden;
 }
 
 .service-overview-item {
-  position: relative;
-  z-index: 2;
   display: flex;
   min-width: 0;
 }
@@ -1270,8 +1275,8 @@ html:has(.service-detail-page) {
     display: block;
     min-height: 0;
     padding-top: var(--header-height);
-    background-image: none;
   }
+  .services-idle-illustration { display: none; }
   .service-overview-item {
     display: block;
     padding: var(--space-md) var(--space-md) calc(var(--space-md) + var(--space-md));
