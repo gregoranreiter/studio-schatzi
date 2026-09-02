@@ -128,7 +128,9 @@ function initializeNavIndicator() {
   const animateServicesLabel = () => {
     servicesLabelAnimation?.cancel();
     servicesLabelAnimation = null;
-    if (!labelMovement || reducedMotion.matches) return null;
+    // Entering a service already moves this label before the covered page swap.
+    // Only the reverse handoff needs a destination-side animation.
+    if (!labelMovement || reducedMotion.matches || !morphToStandard) return null;
     const { label: movingLabel, x, y } = labelMovement;
     if (Math.abs(x) < .5 && Math.abs(y) < .5) return;
     const movement = movingLabel.animate([
