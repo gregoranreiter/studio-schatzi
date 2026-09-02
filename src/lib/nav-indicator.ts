@@ -2,21 +2,6 @@ export type IndicatorBox = { left: number; top: number; width: number };
 type LabelBox = { left: number; top: number; width: number };
 type Origin = { left: number; top: number };
 
-type ServicesLabelTransition = {
-  morphFromStandard: boolean;
-  morphToStandard: boolean;
-  movedOnSource: boolean;
-};
-
-/** Animate Services only while a real menu-structure handoff is in progress. */
-export function shouldAnimateServicesLabel({
-  morphFromStandard,
-  morphToStandard,
-  movedOnSource,
-}: ServicesLabelTransition) {
-  return morphFromStandard || morphToStandard || movedOnSource;
-}
-
 const frameFor = (box: IndicatorBox, origin: Origin) => ({
   transform: `translate3d(${box.left - origin.left}px, ${box.top - origin.top}px, 0)`,
   width: `${box.width}px`,

@@ -743,28 +743,15 @@ html:has(.service-detail-page) {
   min-height: 100svh;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--signal);
+  background-color: var(--signal);
+  background-image: url('/images/services/gretzl-character-black.png');
+  background-position: center calc(50% + var(--header-height) / 2);
+  background-repeat: no-repeat;
+  background-size: min(44vw, 62svh) auto;
 }
 
-.services-overview-idle-art {
-  position: absolute;
-  inset: var(--header-height) 0 0;
-  z-index: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-
-.services-overview-idle-art img {
-  display: block;
-  width: min(44vw, 62svh);
-  max-height: 66svh;
-  object-fit: contain;
-}
-
-.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) .services-overview-idle-art,
-.services-overview-grid:has(.service-column__description:is([data-headline-active], [data-headline-exiting])) .services-overview-idle-art {
-  visibility: hidden;
+.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) {
+  background-image: none;
 }
 
 .service-overview-item {
@@ -1278,12 +1265,12 @@ html:has(.service-detail-page) {
 
 @media (max-width: 760px), (hover: none), (pointer: coarse) {
   .service-preview { display: none; }
-  .services-overview-idle-art { display: none; }
   .service-headline { font-size: var(--text-lg); }
   .services-overview-grid {
     display: block;
     min-height: 0;
     padding-top: var(--header-height);
+    background-image: none;
   }
   .service-overview-item {
     display: block;

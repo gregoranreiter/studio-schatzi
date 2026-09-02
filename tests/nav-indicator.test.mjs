@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { indicatorPlacement, shouldAnimateServicesLabel } from '../src/lib/nav-indicator.ts';
+import { indicatorPlacement } from '../src/lib/nav-indicator.ts';
 
 test('the shared underline travels from the previous label and changes width', () => {
   const result = indicatorPlacement(
@@ -46,29 +46,6 @@ test('pages without a selected menu item hide the underline', () => {
   assert.equal(indicatorPlacement(null, { left: 200, top: 20, width: 60 }, { left: 0, top: 0 }), null);
 });
 
-test('Services animates for a cross-page handoff but stays still for a reload correction', () => {
-  assert.equal(shouldAnimateServicesLabel({
-    morphFromStandard: false,
-    morphToStandard: false,
-    movedOnSource: false,
-  }), false);
-  assert.equal(shouldAnimateServicesLabel({
-    morphFromStandard: false,
-    morphToStandard: false,
-    movedOnSource: true,
-  }), true);
-  assert.equal(shouldAnimateServicesLabel({
-    morphFromStandard: true,
-    morphToStandard: false,
-    movedOnSource: false,
-  }), true);
-  assert.equal(shouldAnimateServicesLabel({
-    morphFromStandard: false,
-    morphToStandard: true,
-    movedOnSource: false,
-  }), true);
-});
-
 function createIndicatorEnvironment() {
   const document = new EventTarget();
   const window = new EventTarget();
@@ -79,33 +56,17 @@ function createIndicatorEnvironment() {
   let frameId = 0;
   let selected = 0;
   const origin = { left: 700, top: 0 };
-  const labelBounds = [
-    { left: 700, top: 12, bottom: 45, width: 60 },
-    { left: 820, top: 12, bottom: 45, width: 84 },
-    { left: 960, top: 12, bottom: 45, width: 48 },
-  ];
-  const makeAnimation = (target, keyframes, options) => {
-    let resolve;
-    let reject;
-    const animation = {
-      target, keyframes, options, cancelled: false,
-      finished: new Promise((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; }),
-      finish() { resolve(); },
-      cancel() { this.cancelled = true; reject(new Error('cancelled')); },
-    };
-    animations.push(animation);
-    return animation;
-  };
-  const labels = labelBounds.map((bounds) => ({
+  const labels = [
+    { left: 700, bottom: 45, width: 60 },
+    { left: 820, bottom: 45, width: 84 },
+    { left: 960, bottom: 45, width: 48 },
+  ].map((bounds) => ({
     getBoundingClientRect: () => bounds,
     querySelector: () => ({ getBoundingClientRect: () => ({ top: bounds.bottom + 1 }) }),
   }));
   const links = ['/projekte', '/leistungen', '/studio', 'mailto:post@studioschatzi.at'].map((href, index) => ({
     href: new URL(href, 'https://studioschatzi.at').href,
-    style: {},
-    getBoundingClientRect: () => labelBounds[index] ?? labelBounds.at(-1),
     querySelector: () => labels[index] ?? null,
-    animate(keyframes, options) { return makeAnimation(this, keyframes, options); },
   }));
   const indicator = {
     dataset: {}, style: {},
@@ -114,7 +75,16 @@ function createIndicatorEnvironment() {
       return { left: origin.left + coordinates[0], top: origin.top + coordinates[1], width: parseFloat(this.style.width) };
     },
     animate(keyframes, options) {
-      return makeAnimation(this, keyframes, options);
+      let resolve;
+      let reject;
+      const animation = {
+        keyframes, options, cancelled: false,
+        finished: new Promise((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; }),
+        finish() { resolve(); },
+        cancel() { this.cancelled = true; reject(new Error('cancelled')); },
+      };
+      animations.push(animation);
+      return animation;
     },
   };
   const makeNav = () => ({
@@ -140,7 +110,7 @@ function createIndicatorEnvironment() {
   const source = readFileSync(new URL('../src/scripts/nav-indicator.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   vm.runInNewContext(compiled.outputText, {
-    exports: {}, require: () => ({ indicatorPlacement, shouldAnimateServicesLabel }), document, window, Event, AbortController, URL, queueMicrotask,
+    exports: {}, require: () => ({ indicatorPlacement }), document, window, Event, AbortController, URL, queueMicrotask,
     requestAnimationFrame(callback) { frames.set(++frameId, callback); return frameId; },
     cancelAnimationFrame(id) { frames.delete(id); },
     ResizeObserver: class {
@@ -169,24 +139,9 @@ function createIndicatorEnvironment() {
     document.dispatchEvent(event);
     return { controller, event };
   };
-  const remountWithServicesShift = (delta) => {
-    document.dispatchEvent(new Event('astro:before-swap'));
-    labelBounds[1].left += delta;
-    nav = makeNav();
-    document.dispatchEvent(new Event('astro:after-swap'));
-  };
 
-  return { document, window, motion, observers, animations, indicator, flush, navigate, beginNavigation, remountWithServicesShift };
+  return { document, window, motion, observers, animations, indicator, flush, navigate, beginNavigation };
 }
-
-test('a same-menu remount snaps Services to a corrected layout without animating', async () => {
-  const { animations, flush, remountWithServicesShift } = createIndicatorEnvironment();
-  await flush();
-  const count = animations.length;
-  remountWithServicesShift(4);
-  await flush();
-  assert.equal(animations.length, count);
-});
 
 test('page swaps keep one indicator, survive font notifications, and respect reduced motion', async () => {
   const { motion, observers, animations, indicator, flush, navigate } = createIndicatorEnvironment();
