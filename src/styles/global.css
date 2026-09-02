@@ -260,7 +260,7 @@ h2, h3, h4, h5, h6 {
 .nav-standard-ghost {
   display: flex;
   align-items: flex-start;
-  gap: calc(2 * var(--nav-gap));
+  gap: var(--nav-gap);
 }
 
 .nav-standard-ghost {

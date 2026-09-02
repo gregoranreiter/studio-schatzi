@@ -26,7 +26,7 @@ export type Service = {
 export const services: Service[] = [
   {
     slug: 'positionierung-kommunikation',
-    title: 'Positionierung & Kommunikation',
+    title: 'Positionierung',
     overviewTitle: 'Aus Aufmerksamkeit wird Nachfrage.',
     overviewText: 'Wir schärfen das Angebot, finden die richtige Geschichte und bauen einen Auftritt, der den nächsten Schritt leicht macht. Das kann eine Website sein, eine Kampagne oder ein ganzes System. Entscheidend ist, dass aus Interesse ein Gespräch wird.',
     headline: 'Damit Menschen schnell verstehen, warum, bitte, genau dieses Angebot so relevant ist.',
