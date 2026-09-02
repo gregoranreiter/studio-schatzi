@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { indicatorPlacement } from '../src/lib/nav-indicator.ts';
+import { indicatorPlacement, shouldAnimateServicesLabel } from '../src/lib/nav-indicator.ts';
 
 test('the shared underline travels from the previous label and changes width', () => {
   const result = indicatorPlacement(
@@ -44,6 +44,29 @@ test('staying in the same section does not restart the underline animation', () 
 
 test('pages without a selected menu item hide the underline', () => {
   assert.equal(indicatorPlacement(null, { left: 200, top: 20, width: 60 }, { left: 0, top: 0 }), null);
+});
+
+test('Services animates for a cross-page handoff but stays still for a reload correction', () => {
+  assert.equal(shouldAnimateServicesLabel({
+    morphFromStandard: false,
+    morphToStandard: false,
+    movedOnSource: false,
+  }), false);
+  assert.equal(shouldAnimateServicesLabel({
+    morphFromStandard: false,
+    morphToStandard: false,
+    movedOnSource: true,
+  }), true);
+  assert.equal(shouldAnimateServicesLabel({
+    morphFromStandard: true,
+    morphToStandard: false,
+    movedOnSource: false,
+  }), true);
+  assert.equal(shouldAnimateServicesLabel({
+    morphFromStandard: false,
+    morphToStandard: true,
+    movedOnSource: false,
+  }), true);
 });
 
 function createIndicatorEnvironment() {
@@ -117,7 +140,7 @@ function createIndicatorEnvironment() {
   const source = readFileSync(new URL('../src/scripts/nav-indicator.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   vm.runInNewContext(compiled.outputText, {
-    exports: {}, require: () => ({ indicatorPlacement }), document, window, Event, AbortController, URL, queueMicrotask,
+    exports: {}, require: () => ({ indicatorPlacement, shouldAnimateServicesLabel }), document, window, Event, AbortController, URL, queueMicrotask,
     requestAnimationFrame(callback) { frames.set(++frameId, callback); return frameId; },
     cancelAnimationFrame(id) { frames.delete(id); },
     ResizeObserver: class {

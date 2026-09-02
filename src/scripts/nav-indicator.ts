@@ -1,4 +1,8 @@
-import { indicatorPlacement, type IndicatorBox } from '../lib/nav-indicator';
+import {
+  indicatorPlacement,
+  shouldAnimateServicesLabel,
+  type IndicatorBox,
+} from '../lib/nav-indicator';
 
 type NavigationEvent = Event & { to: URL; signal: AbortSignal };
 
@@ -130,7 +134,11 @@ function initializeNavIndicator() {
     servicesLabelAnimation = null;
     // A production reload can remount the header after a tiny layout correction.
     // Only animate this label when the menu is genuinely changing structure.
-    if (!labelMovement || reducedMotion.matches || (!morphFromStandard && !morphToStandard)) return null;
+    if (
+      !labelMovement
+      || reducedMotion.matches
+      || !shouldAnimateServicesLabel({ morphFromStandard, morphToStandard, movedOnSource })
+    ) return null;
     const { label: movingLabel, x, y } = labelMovement;
     if (Math.abs(x) < .5 && Math.abs(y) < .5) return;
     const movement = movingLabel.animate([
