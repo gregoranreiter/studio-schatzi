@@ -929,19 +929,24 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   margin: 0;
 }
 
-.service-detail-chapters { padding: 0 var(--pad); }
+.service-detail-chapters {
+  padding: 0 var(--pad);
+  display: grid;
+  grid-template-columns: var(--page-columns);
+  column-gap: var(--grid-gap);
+}
 
 .service-detail-chapter {
+  grid-column: 2 / -1;
   padding: calc(var(--space-lg) + var(--space-sm)) 0;
-  border-bottom: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md) var(--grid-gap);
   align-items: start;
 }
 
 .service-detail-chapter h2 {
-  grid-column: 1 / span 7;
+  grid-column: 1 / span 2;
   margin: 0;
   max-width: 26ch;
 
@@ -949,7 +954,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 }
 
 .service-detail-chapter p {
-  grid-column: 9 / span 4;
+  grid-column: 3;
   margin: 0;
 
   letter-spacing: 0;
@@ -1255,6 +1260,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   .service-copy p { margin-top: var(--space-lg); }
   .service-related { margin-left: 0; }
   .service-related .project-card:first-child { margin-bottom: var(--space-xl); }
+  .service-detail-chapters { display: block; }
   .service-detail-chapter { display: block; }
   .service-detail-chapter h2,
   .service-cases > h2 {
