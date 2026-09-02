@@ -11,6 +11,9 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
 <BaseLayout title="Leistungen — Studio Schatzi" description="Studio Schatzi entwickelt Positionierungen, Marken, Kampagnen und digitale Auftritte." bodyClass="services-overview-page" showFooter={false}>
   <section class="services-overview-grid" aria-labelledby="services-title">
     <h1 class="visually-hidden" id="services-title">Leistungen</h1>
+    <div class="services-overview-idle-art" aria-hidden="true">
+      <img src="/images/services/gretzl-character-black.png" alt="" />
+    </div>
     {services.map((service) => (
       <article class="service-overview-item" aria-labelledby={`service-${service.slug}`}>
         <a

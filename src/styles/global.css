@@ -746,7 +746,31 @@ html:has(.service-detail-page) {
   background: var(--signal);
 }
 
+.services-overview-idle-art {
+  position: absolute;
+  inset: var(--header-height) 0 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .18s ease-out;
+}
+
+.services-overview-idle-art img {
+  display: block;
+  width: min(44vw, 62svh);
+  max-height: 66svh;
+  object-fit: contain;
+}
+
+.services-overview-grid:has(.service-column:is(:hover, :focus-visible)) .services-overview-idle-art {
+  opacity: 0;
+}
+
 .service-overview-item {
+  position: relative;
+  z-index: 2;
   display: flex;
   min-width: 0;
 }
@@ -1255,6 +1279,7 @@ html:has(.service-detail-page) {
 
 @media (max-width: 760px), (hover: none), (pointer: coarse) {
   .service-preview { display: none; }
+  .services-overview-idle-art { display: none; }
   .service-headline { font-size: var(--text-lg); }
   .services-overview-grid {
     display: block;
@@ -1340,6 +1365,7 @@ html:has(.service-detail-page) {
   html { scroll-behavior: auto; }
   [data-header-glyph],
   [data-nav-indicator] { transition: none; }
+  .services-overview-idle-art { transition: none; }
   .service-column h2 { transition: none; }
   .project-card__image img { transition: none; }
   .page-swipe { display: none; }

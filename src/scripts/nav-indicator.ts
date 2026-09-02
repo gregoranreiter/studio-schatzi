@@ -128,7 +128,9 @@ function initializeNavIndicator() {
   const animateServicesLabel = () => {
     servicesLabelAnimation?.cancel();
     servicesLabelAnimation = null;
-    if (!labelMovement || reducedMotion.matches) return null;
+    // A production reload can remount the header after a tiny layout correction.
+    // Only animate this label when the menu is genuinely changing structure.
+    if (!labelMovement || reducedMotion.matches || (!morphFromStandard && !morphToStandard)) return null;
     const { label: movingLabel, x, y } = labelMovement;
     if (Math.abs(x) < .5 && Math.abs(y) < .5) return;
     const movement = movingLabel.animate([
