@@ -534,8 +534,10 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 .home-project--full .project-card__caption p,
 .home-project--left .project-card__caption p { grid-column: 3 / -1; }
 .home-projects > .archive-link {
-  grid-column: 2 / span 2;
+  grid-column: 1 / -1;
   justify-self: stretch;
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .pill-link {
@@ -1078,6 +1080,8 @@ html:has(.service-detail-page) {
   color: var(--ink);
 }
 
+.home-page .site-footer { padding-top: 0; }
+
 .client-logos {
   --logo-gap: var(--space-lg);
   --logo-width: clamp(4rem, 8.5vw, 8rem);
@@ -1204,9 +1208,9 @@ html:has(.service-detail-page) {
   .home-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-projects > .archive-link {
     grid-column: 1 / -1;
-    justify-self: center;
-    max-width: 100%;
-    padding-inline: clamp(2rem, 8vw, 4rem);
+    justify-self: stretch;
+    max-width: none;
+    padding-inline: var(--space-md);
   }
   .home-projects-grid > .project-card { grid-column: 1 / -1; }
   .home-projects-grid .project-card__image { grid-column: 1 / -1; }
