@@ -50,8 +50,29 @@ html {
   font-family: "PP Neue Montreal", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: var(--font-weight-medium);
   font-synthesis: none;
+  overflow-y: scroll;
   scroll-behavior: smooth;
+  scrollbar-color: var(--ink) var(--signal);
+  scrollbar-gutter: stable;
 }
+
+html::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: var(--signal);
+}
+
+html::-webkit-scrollbar-track,
+html::-webkit-scrollbar-corner { background: var(--signal); }
+
+html::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: none;
+}
+
+html::-webkit-scrollbar-button { display: none; }
 
 body {
   margin: 0;
@@ -721,12 +742,6 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 .services-overview-page {
   min-height: 100svh;
   background: var(--signal);
-}
-
-/* Keep the headline canvas identical even with non-overlay scrollbars. */
-html:has(.services-overview-page),
-html:has(.service-detail-page) {
-  scrollbar-gutter: stable;
 }
 
 .services-overview-grid,
