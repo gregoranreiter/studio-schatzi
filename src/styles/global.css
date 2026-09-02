@@ -1,7 +1,6 @@
-/* Local font trial only. Replace local() with the licensed webfont when ready. */
 @font-face {
   font-family: "PP Neue Montreal";
-  src: local("PPNeueMontreal-Medium"), local("PP Neue Montreal Medium");
+  src: url("/fonts/PPNeueMontreal-Medium.woff2") format("woff2");
   font-style: normal;
   font-weight: 500;
   font-display: swap;
