@@ -471,7 +471,7 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   letter-spacing: 0;
 }
 
-.archive-link { margin-bottom: var(--space-lg); }
+.archive-link { margin-bottom: 0; }
 
 .page-intro {
   min-height: min(85vh, 930px);
