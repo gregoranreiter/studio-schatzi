@@ -747,7 +747,7 @@ html:has(.service-detail-page) {
   background-image: url('/images/services/gretzl-character-black.png');
   background-position: center calc(50% + var(--header-height) / 2);
   background-repeat: no-repeat;
-  background-size: min(44vw, 62svh) auto;
+  background-size: min(30.8vw, 43.4svh) auto;
 }
 
 .services-overview-grid:has(.service-column:is(:hover, :focus-visible)) {
