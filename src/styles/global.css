@@ -1065,9 +1065,11 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
+  background: var(--signal);
 }
 
 .contact-page #main-content { flex: 1; }
+.contact-page .site-footer { background: var(--signal); }
 
 .contact-intro {
   display: grid;
