@@ -140,7 +140,7 @@ function createIndicatorEnvironment() {
     return { controller, event };
   };
 
-  return { document, motion, observers, animations, indicator, flush, navigate, beginNavigation };
+  return { document, window, motion, observers, animations, indicator, flush, navigate, beginNavigation };
 }
 
 test('page swaps keep one indicator, survive font notifications, and respect reduced motion', async () => {
@@ -173,6 +173,21 @@ test('page swaps keep one indicator, survive font notifications, and respect red
   navigate(-1);
   assert.equal(indicator.dataset.visible, undefined);
   assert.equal(indicator.style.width, '0px');
+});
+
+test('cached page restoration clears navigation memory without replaying the underline', async () => {
+  const { window, animations, indicator, flush, navigate } = createIndicatorEnvironment();
+  await flush();
+  navigate(1);
+  animations.at(-1).finish();
+  await flush();
+  const count = animations.length;
+  window.dispatchEvent(new Event('pagehide'));
+  window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+  await flush();
+  assert.equal(animations.length, count);
+  assert.equal(indicator.dataset.visible, 'true');
+  assert.equal(indicator.style.width, '84px');
 });
 
 test('the underline starts before page loading and keeps its destination through the page swap', async () => {

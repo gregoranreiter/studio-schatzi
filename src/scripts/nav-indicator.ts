@@ -13,6 +13,15 @@ let sourceMenuAnimations: Animation[] = [];
 let menuMorphAnimations: Animation[] = [];
 let cleanup = () => {};
 
+const resetNavigationMemory = () => {
+  previousBox = null;
+  previousServicesLabelBox = null;
+  previousMenuWasStandard = false;
+  servicesMovedOnSource = false;
+  servicesReturningToOverview = false;
+  previousBreadcrumbGhost = null;
+};
+
 function initializeNavIndicator() {
   cleanup();
   const nav = document.querySelector<HTMLElement>('.site-header nav');
@@ -388,3 +397,12 @@ function initializeNavIndicator() {
 initializeNavIndicator();
 document.addEventListener('astro:before-swap', () => cleanup());
 document.addEventListener('astro:after-swap', initializeNavIndicator);
+window.addEventListener('pagehide', () => {
+  cleanup();
+  resetNavigationMemory();
+});
+window.addEventListener('pageshow', (event) => {
+  if (!(event as PageTransitionEvent).persisted) return;
+  resetNavigationMemory();
+  initializeNavIndicator();
+});

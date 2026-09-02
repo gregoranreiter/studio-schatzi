@@ -3,6 +3,7 @@ import { chooseGlyphContrast, composite, imagePoint, type HeaderTone, type RGB }
 type CachedImage = { source: string; pixels: ImageData | null };
 const imageCache = new WeakMap<HTMLImageElement, CachedImage>();
 let cleanup = () => {};
+let mountedHeader: HTMLElement | null = null;
 
 function imagePixels(image: HTMLImageElement): ImageData | null {
   const source = image.currentSrc || image.src;
@@ -37,13 +38,17 @@ function rgba(value: string): { color: RGB; alpha: number } | null {
 }
 
 function initializeHeaderContrast() {
-  cleanup();
   const header = document.querySelector<HTMLElement>('.site-header');
+  // Initial page-load follows this module's first run; do not remount the same header.
+  if (header && header === mountedHeader) return;
+  cleanup();
   if (!header) return;
+  mountedHeader = header;
   const items = [...header.querySelectorAll<HTMLElement>('[data-header-adaptive]')];
   const glyphs = [...header.querySelectorAll<HTMLElement | SVGElement>('[data-header-glyph], [data-nav-indicator]')];
   const abort = new AbortController();
   let frame = 0;
+  let readyFrame = 0;
   let disposed = false;
 
   const update = () => {
@@ -123,6 +128,13 @@ function initializeHeaderContrast() {
     for (const { glyph, tone, previous } of changes) {
       if (tone !== previous) glyph.dataset.headerTone = tone;
     }
+    if (!header.dataset.headerContrastReady && !readyFrame) {
+      // Paint the first sampled colours with transitions disabled. Later changes may animate.
+      readyFrame = requestAnimationFrame(() => {
+        readyFrame = 0;
+        if (!disposed) header.dataset.headerContrastReady = 'true';
+      });
+    }
     if (document.documentElement.dataset.swipePhase || header.querySelector('[data-nav-indicator][data-moving]')) schedule();
   };
 
@@ -148,6 +160,8 @@ function initializeHeaderContrast() {
     abort.abort();
     resize.disconnect();
     cancelAnimationFrame(frame);
+    cancelAnimationFrame(readyFrame);
+    if (mountedHeader === header) mountedHeader = null;
   };
 }
 

@@ -75,7 +75,7 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
       };
       const headline = {
         offsetTop: 120, offsetHeight: 240, offsetWidth: width - 48, dataset: {}, style: {},
-        getBoundingClientRect() { return { left: 24, width: this.offsetWidth }; },
+        getBoundingClientRect() { return { left: 24, top: 120, width: this.offsetWidth, height: this.offsetHeight }; },
       };
       const column = Object.assign(new EventTarget(), {
         dataset: { serviceProjects: JSON.stringify(projects) },
@@ -148,9 +148,11 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
     hit = columns[index];
     columns[index].dispatchEvent(Object.assign(new Event(type), { clientX: x, clientY: y, movementX, pointerType }));
   };
-  const leave = (index, nextIndex = null, movementX = 0) => {
+  const leave = (index, nextIndex = null, movementX = 0, x = (index + 1) * width / 4, y = 300) => {
     hit = columns[nextIndex] ?? null;
-    columns[index].dispatchEvent(Object.assign(new Event('pointerleave'), { relatedTarget: hit, movementX }));
+    columns[index].dispatchEvent(Object.assign(new Event('pointerleave'), {
+      relatedTarget: hit, movementX, clientX: x, clientY: y,
+    }));
   };
   const focus = (index) => {
     const previous = focusedColumn;
@@ -192,8 +194,22 @@ function createPreviewEnvironment({ ready = true, canHover = true, reduced = fal
 }
 
 const mask = (column) => {
-  const [right, left] = column.headline.style.clipPath.match(/[-+\d.e]+%/g).map(parseFloat);
+  const clip = column.headline.style.clipPath;
+  if (clip.startsWith('circle(')) {
+    const [radius, x] = clip.match(/[-+\d.e]+px/g).map(parseFloat);
+    return {
+      left: Math.max(0, (x - radius) / column.headline.offsetWidth),
+      right: Math.min(1, (x + radius) / column.headline.offsetWidth),
+    };
+  }
+  const [right, left] = clip.match(/[-+\d.e]+%/g).map(parseFloat);
   return { left: left / 100, right: 1 - right / 100 };
+};
+const circleMask = (column) => {
+  const clip = column.headline.style.clipPath;
+  if (!clip.startsWith('circle(')) return null;
+  const [radius, x, y] = clip.match(/[-+\d.e]+px/g).map(parseFloat);
+  return { radius, x, y };
 };
 const previewPosition = (preview) => preview.style.transform.match(/-?[\d.]+px/g).map(parseFloat);
 const titleY = (column) => Number(column.title.style.transform.match(/, ([-\d.]+)px/)[1]);
@@ -205,18 +221,12 @@ const origin = (column) => {
   const headline = column.headline.getBoundingClientRect();
   return (bounds.left + bounds.width / 2 - headline.left) / headline.width;
 };
-const startOrigin = (column) => {
-  const bounds = column.getBoundingClientRect();
-  const headline = column.headline.getBoundingClientRect();
-  return Math.max(0, Math.min(1, (bounds.left - headline.left) / headline.width));
-};
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} should equal ${expected}`);
 
 test('directional masks share a 20px yellow gap at every frame without moving or fading the text', () => {
   const { columns, move, leave, step, tick } = createPreviewEnvironment();
-  move(0, { type: 'pointerenter', x: 20, movementX: 2 });
-  near(mask(columns[0]).left, startOrigin(columns[0]));
-  near(mask(columns[0]).right, startOrigin(columns[0]));
+  move(0, { type: 'pointerenter', x: 20, y: 300, movementX: 2 });
+  assert.deepEqual(circleMask(columns[0]), { radius: 0, x: -4, y: 180 });
   step();
   leave(0, 2);
   move(2, { type: 'pointerenter', x: 550 });
@@ -249,62 +259,69 @@ test('directional masks share a 20px yellow gap at every frame without moving or
   assert.deepEqual(mask(columns[1]), { left: 0, right: 1 });
 });
 
-test('outside pointer entries expand on both sides of each column left edge', () => {
-  for (const [index, x, movementX] of [[0, 20, 2], [2, 550, -3], [3, 920, 0], [1, 240, 0]]) {
+test('initial and final hover masks expand and contract as circles from captured cursor positions', () => {
+  for (const [index, x, y, movementX] of [[0, 20, 180, 2], [2, 550, 420, -3], [3, 920, 260, 0], [1, 240, 640, 0]]) {
     const env = createPreviewEnvironment();
-    env.move(index, { type: 'pointerenter', x, movementX });
-    const visible = mask(env.columns[index]);
-    const start = startOrigin(env.columns[index]);
-    near(visible.left, start);
-    near(visible.right, start);
+    env.move(index, { type: 'pointerenter', x, y, movementX });
+    assert.deepEqual(circleMask(env.columns[index]), { radius: 0, x: x - 24, y: y - 120 });
     env.tick();
-    assert.ok(mask(env.columns[index]).left <= start && mask(env.columns[index]).right >= start,
-      'Both edges expand from the left edge of the hovered column');
-    const afterStart = mask(env.columns[index]);
+    const afterStart = circleMask(env.columns[index]);
+    assert.ok(afterStart.radius > 0);
     env.move(index, { x: x + 80 });
-    assert.deepEqual(mask(env.columns[index]), afterStart, 'Pointer movement does not retarget or restart the reveal');
+    assert.deepEqual(circleMask(env.columns[index]), afterStart,
+      'Pointer movement does not retarget or restart the reveal');
     env.step();
-    env.leave(index);
+    env.leave(index, null, 0, x + 100, y + 40);
+    const exit = circleMask(env.columns[index]);
+    assert.equal(exit.x, x + 76);
+    assert.equal(exit.y, y - 80);
+    env.tick();
+    assert.ok(circleMask(env.columns[index]).radius < exit.radius);
     env.step();
-    env.move(1, { type: 'pointerenter', x: 240 });
-    near(mask(env.columns[1]).left, startOrigin(env.columns[1]));
-    near(mask(env.columns[1]).right, startOrigin(env.columns[1]));
+    env.move(1, { type: 'pointerenter', x: 240, y: 300 });
+    assert.deepEqual(circleMask(env.columns[1]), { radius: 0, x: 216, y: 180 });
     env.document.dispatchEvent(new Event('astro:before-swap'));
     assert.equal(env.frames.size, 0);
     env.move(0);
     assert.equal(activeText(env.columns[0]), false, 'Disposed listeners do nothing');
     env.document.dispatchEvent(new Event('astro:page-load'));
-    env.move(0, { type: 'pointerenter', x: 200 });
-    near(mask(env.columns[0]).left, startOrigin(env.columns[0]));
-    near(mask(env.columns[0]).right, startOrigin(env.columns[0]));
+    env.move(0, { type: 'pointerenter', x: 200, y: 260 });
+    assert.deepEqual(circleMask(env.columns[0]), { radius: 0, x: 176, y: 140 });
   }
 });
 
-test('leaving contracts the visible headline toward its column left edge and reentry catches it in place', () => {
+test('initial page-load keeps the existing hover physics instance and page restoration clears it', () => {
+  const env = createPreviewEnvironment();
+  const observer = [...env.resizeObservers][0];
+  env.move(0, { type: 'pointerenter', x: 20 });
+  assert.equal(activeText(env.columns[0]), true);
+  env.document.dispatchEvent(new Event('astro:page-load'));
+  assert.equal(activeText(env.columns[0]), true, 'Initial page-load must not remount an active service');
+  assert.equal([...env.resizeObservers][0], observer, 'The same physics and resize instance stays mounted');
+  env.window.dispatchEvent(new Event('pagehide'));
+  assert.equal(activeText(env.columns[0]), false, 'Cached page restoration cannot replay an old hover state');
+});
+
+test('leaving contracts the circular mask toward the exit point and reentry catches it in place', () => {
   for (let index = 0; index < 4; index++) {
     const env = createPreviewEnvironment();
     env.move(index);
     env.step();
-    env.leave(index, null, 4);
+    const exitX = (index + 1) * 200;
+    env.leave(index, null, 4, exitX, 300);
     assert.deepEqual(mask(env.columns[index]), { left: 0, right: 1 });
-    const start = startOrigin(env.columns[index]);
-    let previous = mask(env.columns[index]);
+    let previous = circleMask(env.columns[index]);
     for (let frame = 0; frame < 5; frame++) {
       env.tick();
-      const visible = mask(env.columns[index]);
-      assert.ok(visible.left >= previous.left && visible.right <= previous.right);
-      assert.ok(visible.left > previous.left || visible.right < previous.right);
-      assert.ok(visible.left <= start && visible.right >= start);
-      if (start > 0) near(visible.left / start, (1 - visible.right) / (1 - start));
+      const visible = circleMask(env.columns[index]);
+      assert.ok(visible.radius < previous.radius);
       previous = visible;
     }
-    env.move(index);
-    assert.deepEqual(mask(env.columns[index]), previous, 'Re-hovering never restarts a close from zero width');
+    env.move(index, { x: exitX - 10, y: 300 });
+    const caught = circleMask(env.columns[index]);
+    assert.ok(caught.radius > 0, 'Re-hovering never restarts a close from zero radius');
     env.tick();
-    const reopened = mask(env.columns[index]);
-    assert.ok(reopened.left <= previous.left && reopened.right >= previous.right);
-    assert.ok(reopened.left < previous.left || reopened.right > previous.right,
-      'Re-hovering expands the caught mask without crossing a page boundary');
+    assert.ok(circleMask(env.columns[index]).radius > caught.radius);
     env.step();
     env.leave(index);
     env.step();
@@ -318,12 +335,13 @@ test('a brief center reveal closes from its partial mask without exposing hidden
   const env = createPreviewEnvironment();
   env.move(2);
   env.tick();
-  const partial = mask(env.columns[2]);
-  env.leave(2);
-  assert.deepEqual(mask(env.columns[2]), partial);
+  const partial = circleMask(env.columns[2]);
+  env.leave(2, null, 0, 540, 300);
+  assert.ok(circleMask(env.columns[2]).radius < partial.radius * 1.5,
+    'An interrupted reveal cannot flash to a fully open mask');
+  const closing = circleMask(env.columns[2]);
   env.tick();
-  assert.ok(mask(env.columns[2]).left >= partial.left);
-  assert.ok(mask(env.columns[2]).right <= partial.right);
+  assert.ok(circleMask(env.columns[2]).radius < closing.radius);
   env.step();
   assert.equal(env.columns.some(exitingText), false);
 });
@@ -440,8 +458,11 @@ test('interrupted swipes retain the visible part of the old headline and discard
   assert.equal(columns[2].headline.style.clipPath, before, 'Duplicate enter events do not restart motion');
   tick();
   const last = mask(columns[2]);
-  leave(2, null, -3);
-  assert.deepEqual(mask(columns[2]), last, 'Leaving conceals the current mask, including during a reveal');
+  leave(2, null, -3, 540, 300);
+  const radialExit = circleMask(columns[2]);
+  assert.ok(radialExit && radialExit.radius > 0, 'Leaving converts the current visible amount into the exit circle');
+  assert.ok(mask(columns[2]).right - mask(columns[2]).left < 1 || last.right - last.left === 1,
+    'An interrupted exit cannot flash a partial reveal fully open');
   step();
   assert.equal(columns.some(exitingText), false);
   assert.equal(columns.some(activeText), false);

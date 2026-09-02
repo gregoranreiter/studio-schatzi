@@ -1,12 +1,20 @@
 import { placeServicePreview } from '../lib/service-preview';
 import { createPhysicalMotion } from '../lib/physical-motion';
 
+type PointerPoint = { x: number; y: number };
+type CircleMask = { point: PointerPoint; progress: number };
+
 let cleanup = () => {};
+let mountedPreview: HTMLElement | null = null;
 
 function initializeServicePreview() {
-  cleanup();
   const preview = document.querySelector<HTMLElement>('[data-service-preview]');
+  // Astro fires page-load on the initial document as well as after client navigation.
+  // Keep the live instance when both events refer to the same DOM node.
+  if (preview && preview === mountedPreview) return;
+  cleanup();
   if (!preview) return;
+  mountedPreview = preview;
 
   const columns = [...document.querySelectorAll<HTMLAnchorElement>('[data-service-projects]')];
   const header = document.querySelector<HTMLElement>('.site-header');
@@ -36,8 +44,13 @@ function initializeServicePreview() {
     cancel: (id) => window.cancelAnimationFrame(id),
   });
   const masks = new Map<HTMLElement, { left: number; right: number }>();
+  const circleMasks = new Map<HTMLElement, CircleMask>();
   let outgoingMask = { left: 0, right: 1 };
   let incomingMask = { left: .5, right: .5 };
+  let radialPoint: PointerPoint | null = null;
+  let radialOutgoingStart = 1;
+  let radialIncomingStart = 0;
+  let directionalOutgoingCircle: CircleMask | null = null;
   let headlineWidth = 1;
   let swipeRunning = false;
 
@@ -106,13 +119,30 @@ function initializeServicePreview() {
 
   const setMask = (headline: HTMLElement, left: number, right: number) => {
     masks.set(headline, { left, right });
+    circleMasks.delete(headline);
     headline.style.clipPath = `inset(0 ${Math.max(0, 1 - right) * 100}% 0 ${Math.max(0, left) * 100}%)`;
+  };
+  const setCircleMask = (headline: HTMLElement, point: PointerPoint, progress: number) => {
+    const bounds = headline.getBoundingClientRect();
+    const x = point.x - bounds.left;
+    const y = point.y - bounds.top;
+    const radius = Math.max(
+      Math.hypot(x, y),
+      Math.hypot(bounds.width - x, y),
+      Math.hypot(x, bounds.height - y),
+      Math.hypot(bounds.width - x, bounds.height - y),
+    );
+    const visible = Math.max(0, Math.min(1, progress));
+    masks.delete(headline);
+    circleMasks.set(headline, { point, progress: visible });
+    headline.style.clipPath = `circle(${radius * visible}px at ${x}px ${y}px)`;
   };
   const clearExit = () => {
     if (exitingHeadline) {
       delete exitingHeadline.dataset.headlineExiting;
       exitingHeadline.style.clipPath = '';
       masks.delete(exitingHeadline);
+      circleMasks.delete(exitingHeadline);
     }
     exitingHeadline = null;
   };
@@ -139,33 +169,42 @@ function initializeServicePreview() {
     const edge = progress * (1 + gap);
     const incoming = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
     if (headlineDirection === 0) {
-      if (exitingHeadline) {
-        // Collapse only what is visible, including a reveal interrupted before completion.
-        const origin = Math.max(outgoingMask.left, Math.min(outgoingMask.right, headlineOrigin));
-        setMask(exitingHeadline,
-          outgoingMask.left + (origin - outgoingMask.left) * progress,
-          outgoingMask.right + (origin - outgoingMask.right) * progress);
-      }
-      if (incoming) {
-        if (Math.abs(incomingMask.right - incomingMask.left) < .000001) {
-          // A fresh reveal grows by the same physical distance on both sides,
-          // keeping its visual center fixed on the requested origin.
-          const origin = incomingMask.left;
-          const farEdge = Math.max(origin, 1 - origin);
-          const radius = farEdge * progress;
-          setMask(incoming, Math.max(0, origin - radius), Math.min(1, origin + radius));
-        } else {
-          // Re-entry catches the existing partial mask instead of resetting it.
-          setMask(incoming, incomingMask.left * (1 - progress),
-            incomingMask.right + (1 - incomingMask.right) * progress);
+      if (radialPoint) {
+        if (exitingHeadline) setCircleMask(exitingHeadline, radialPoint, radialOutgoingStart * (1 - progress));
+        if (incoming) setCircleMask(incoming, radialPoint,
+          radialIncomingStart + (1 - radialIncomingStart) * progress);
+      } else {
+        if (exitingHeadline) {
+          // Collapse only what is visible, including a reveal interrupted before completion.
+          const origin = Math.max(outgoingMask.left, Math.min(outgoingMask.right, headlineOrigin));
+          setMask(exitingHeadline,
+            outgoingMask.left + (origin - outgoingMask.left) * progress,
+            outgoingMask.right + (origin - outgoingMask.right) * progress);
+        }
+        if (incoming) {
+          if (Math.abs(incomingMask.right - incomingMask.left) < .000001) {
+            const origin = incomingMask.left;
+            const farEdge = Math.max(origin, 1 - origin);
+            const radius = farEdge * progress;
+            setMask(incoming, Math.max(0, origin - radius), Math.min(1, origin + radius));
+          } else {
+            // Re-entry catches the existing partial mask instead of resetting it.
+            setMask(incoming, incomingMask.left * (1 - progress),
+              incomingMask.right + (1 - incomingMask.right) * progress);
+          }
         }
       }
     } else {
       // Both masks use one body, so the yellow strip cannot collapse or drift apart.
       if (exitingHeadline) {
-        setMask(exitingHeadline,
-          headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
-          headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
+        if (directionalOutgoingCircle) {
+          setCircleMask(exitingHeadline, directionalOutgoingCircle.point,
+            directionalOutgoingCircle.progress * (1 - progress));
+        } else {
+          setMask(exitingHeadline,
+            headlineDirection < 0 ? outgoingMask.left : Math.max(outgoingMask.left, edge),
+            headlineDirection < 0 ? Math.min(outgoingMask.right, 1 - edge) : outgoingMask.right);
+        }
       }
       if (incoming) {
         setMask(incoming, headlineDirection < 0 ? Math.max(0, 1 - edge + gap) : 0,
@@ -189,12 +228,21 @@ function initializeServicePreview() {
       headline.style.clipPath = '';
     });
     masks.clear();
+    circleMasks.clear();
     activeHeadline = null;
     syncTitles(true);
   };
-  const startSwipe = (column: HTMLAnchorElement | null, direction: number, origin = columnOrigin(column ?? activeHeadline)) => {
+  const startSwipe = (
+    column: HTMLAnchorElement | null,
+    direction: number,
+    origin = columnOrigin(column ?? activeHeadline),
+    point: PointerPoint | null = null,
+  ) => {
     const previous = activeHeadline?.querySelector<HTMLElement>('.service-column__description');
     const incoming = column?.querySelector<HTMLElement>('.service-column__description');
+    const previousCircle = previous ? circleMasks.get(previous) ?? null : null;
+    const caughtExiting = !!incoming && incoming === exitingHeadline;
+    const caughtCircle = caughtExiting ? circleMasks.get(incoming) ?? null : null;
     headlineOrigin = origin;
     // Catch an unfinished close in place when returning to the same service.
     incomingMask = incoming && incoming === exitingHeadline
@@ -202,6 +250,12 @@ function initializeServicePreview() {
       : { left: headlineOrigin, right: headlineOrigin };
     clearExit();
     outgoingMask = previous ? { ...masks.get(previous) ?? { left: 0, right: 1 } } : { left: 0, right: 1 };
+    radialPoint = direction === 0 ? point : null;
+    radialOutgoingStart = previousCircle?.progress
+      ?? (previous ? Math.max(0, outgoingMask.right - outgoingMask.left) : 1);
+    radialIncomingStart = caughtCircle?.progress
+      ?? (caughtExiting ? Math.max(0, incomingMask.right - incomingMask.left) : 0);
+    directionalOutgoingCircle = direction !== 0 ? previousCircle : null;
     if (previous) delete previous.dataset.headlineActive;
     activeHeadline = column;
     if (incoming) incoming.dataset.headlineActive = '';
@@ -220,8 +274,8 @@ function initializeServicePreview() {
     }
     syncTitles();
   };
-  const concealHeadline = (origin = columnOrigin(activeHeadline)) => startSwipe(null, 0, origin);
-  const showHeadline = (column: HTMLAnchorElement, pointerEntry = false) => {
+  const concealHeadline = (point: PointerPoint | null = null) => startSwipe(null, 0, columnOrigin(activeHeadline), point);
+  const showHeadline = (column: HTMLAnchorElement, pointerEntry = false, point: PointerPoint | null = null) => {
     if (disposed || !hover.matches || document.hidden || document.documentElement.dataset.swipePhase) return;
     if (activeHeadline === column) return;
     const headline = column.querySelector<HTMLElement>('.service-column__description');
@@ -231,7 +285,7 @@ function initializeServicePreview() {
     // Pointer entry is passed explicitly because :hover may not be updated yet
     // when pointerenter fires. Keyboard focus retains the center fallback.
     const origin = direction === 0 && pointerEntry ? columnStartOrigin(column) : columnOrigin(column);
-    startSwipe(column, direction, origin);
+    startSwipe(column, direction, origin, direction === 0 ? point : null);
   };
   const showFocusedHeadline = () => {
     const focused = document.querySelector<HTMLAnchorElement>('.service-column:focus-visible');
@@ -293,7 +347,7 @@ function initializeServicePreview() {
     const underneath = document.elementFromPoint(pointer.x, pointer.y)?.closest<HTMLAnchorElement>('[data-service-projects]');
     if (underneath !== active.column) {
       if (underneath && columnCovers.has(underneath)) {
-        showHeadline(underneath, true);
+        showHeadline(underneath, true, pointer);
         void activate(underneath);
       } else hideAll();
       return;
@@ -352,8 +406,9 @@ function initializeServicePreview() {
   };
   const follow = (event: PointerEvent, column: HTMLAnchorElement) => {
     if (event.pointerType === 'touch' || !hover.matches) { hideAll(); return; }
-    showHeadline(column, true);
-    pointer = { x: event.clientX, y: event.clientY };
+    const point = { x: event.clientX, y: event.clientY };
+    showHeadline(column, true, point);
+    pointer = point;
     void activate(column);
     schedule();
   };
@@ -364,10 +419,12 @@ function initializeServicePreview() {
     column.addEventListener('pointermove', (event) => follow(event, column), options);
     column.addEventListener('pointerleave', (event) => {
       const next = relatedColumn(event.relatedTarget);
-      if (next) showHeadline(next, true);
+      const point = Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+        ? { x: event.clientX, y: event.clientY } : null;
+      if (next) showHeadline(next, true, point);
       else {
         hide();
-        if (!showFocusedHeadline()) concealHeadline(columnStartOrigin(column));
+        if (!showFocusedHeadline()) concealHeadline(point);
       }
     }, options);
     column.addEventListener('pointercancel', hideAll, options);
@@ -384,6 +441,7 @@ function initializeServicePreview() {
   window.visualViewport?.addEventListener('resize', schedule, options);
   window.visualViewport?.addEventListener('scroll', schedule, options);
   window.addEventListener('blur', hideAll, options);
+  window.addEventListener('pagehide', hideAll, options);
   document.addEventListener('visibilitychange', () => { if (document.hidden) hideAll(); }, options);
   document.addEventListener('keydown', hide, { signal: abort.signal });
   hover.addEventListener('change', () => { hideAll(); warmCovers(); positionTitles(); }, options);
@@ -405,6 +463,7 @@ function initializeServicePreview() {
     titlePairs.forEach(({ title }) => { title.style.transform = ''; });
     abort.abort();
     titleResize.disconnect();
+    if (mountedPreview === preview) mountedPreview = null;
   };
 }
 
