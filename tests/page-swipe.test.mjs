@@ -80,7 +80,7 @@ test('primary navigation wipes travel with the underline', async () => {
   for (const [from, to, enter, name] of [
     ['/projekte', '/leistungen', 'translate3d(-105%, 0, 0)', 'left'],
     ['/projekte/ein-projekt', '/studio', 'translate3d(-105%, 0, 0)', 'left'],
-    ['/studio', '/leistungen', 'translate3d(105%, 0, 0)', 'right'],
+    ['/studio', '/leistungen', 'translate3d(-105%, 0, 0)', 'left'],
     ['/leistungen/eine-leistung', '/projekte', 'translate3d(105%, 0, 0)', 'right'],
   ]) {
     const navigation = env.begin({ from, to });
@@ -106,6 +106,21 @@ test('service breadcrumb wipes consume the live underline direction', async () =
     assert.equal(env.animations.at(-1).keyframes[0].transform, enter);
     assert.equal(env.overlay.dataset.swipeDirection, name);
     assert.equal(env.document.documentElement.dataset.headerIndicatorTravel, undefined);
+    navigation.controller.abort();
+    await navigation.loading;
+  }
+  env.dispose();
+});
+
+test('service overview and detail wipes follow the breadcrumb underline movement', async () => {
+  const env = environment();
+  for (const [from, to, enter, name] of [
+    ['/leistungen', '/leistungen/positionierung-kommunikation', 'translate3d(-105%, 0, 0)', 'left'],
+    ['/leistungen/positionierung-kommunikation', '/leistungen', 'translate3d(105%, 0, 0)', 'right'],
+  ]) {
+    const navigation = env.begin({ from, to });
+    assert.equal(env.animations.at(-1).keyframes[0].transform, enter);
+    assert.equal(env.overlay.dataset.swipeDirection, name);
     navigation.controller.abort();
     await navigation.loading;
   }

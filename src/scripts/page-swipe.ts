@@ -7,7 +7,7 @@ const directions = [
   { name: 'top', enter: 'translate3d(0, -105%, 0)', exit: 'translate3d(0, 105%, 0)' },
   { name: 'bottom', enter: 'translate3d(0, 105%, 0)', exit: 'translate3d(0, -105%, 0)' },
 ];
-const primarySections = ['/projekte', '/leistungen', '/studio'];
+const primarySections = ['/projekte', '/studio', '/leistungen'];
 
 const primarySectionIndex = (pathname: string) => primarySections.findIndex((section) => (
   pathname === section || pathname.startsWith(`${section}/`)
@@ -25,6 +25,13 @@ const primaryNavigationDirection = (from: URL, to: URL) => {
 const projectDetailNavigationDirection = (from: URL, to: URL) => (
   from.pathname !== to.pathname && to.pathname.startsWith('/projekte/') ? directions[3] : null
 );
+
+const serviceHierarchyNavigationDirection = (from: URL, to: URL) => {
+  const entersDetail = from.pathname === '/leistungen' && to.pathname.startsWith('/leistungen/');
+  if (entersDetail) return directions[0];
+  const returnsToOverview = from.pathname.startsWith('/leistungen/') && to.pathname === '/leistungen';
+  return returnsToOverview ? directions[1] : null;
+};
 
 const homeNavigationDirection = (to: URL) => to.pathname === '/' ? directions[2] : null;
 
@@ -113,6 +120,7 @@ export function initializePageSwipe(doc = document, host = window) {
       const navigationDirection = homeNavigationDirection(event.to)
         ?? projectDetailNavigationDirection(event.from, event.to)
         ?? indicatorDirection
+        ?? serviceHierarchyNavigationDirection(event.from, event.to)
         ?? primaryNavigationDirection(event.from, event.to);
       const swipe: Swipe = {
         overlay, direction: navigationDirection ?? directions[Math.floor(Math.random() * directions.length)],

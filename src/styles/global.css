@@ -233,7 +233,6 @@ h2, h3, h4, h5, h6 {
 .wordmark [data-header-glyph] { fill: currentColor; }
 
 .desktop-nav {
-  --nav-gap: var(--space-md);
   position: relative;
   grid-area: 1 / 1 / 2 / -1;
   align-self: stretch;
@@ -256,11 +255,11 @@ h2, h3, h4, h5, h6 {
   display: block;
 }
 
-.nav-service-breadcrumb,
-.nav-standard-ghost {
-  display: flex;
+.nav-service-breadcrumb {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: flex-start;
-  gap: var(--nav-gap);
+  column-gap: var(--grid-gap);
 }
 
 .nav-standard-ghost {
@@ -279,14 +278,25 @@ h2, h3, h4, h5, h6 {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
   pointer-events: none;
 }
 
 .nav-services-back {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
 }
 
+.nav-service-separator {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+}
+
 .nav-service-current {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
 }
 
@@ -1218,7 +1228,6 @@ html[data-mobile-menu-open] body { overflow: hidden; }
 }
 
 @media (max-width: 760px) {
-  .desktop-nav { --nav-gap: var(--space-sm); }
   :root[data-mobile-menu-ready] {
     --header-height: calc(var(--header-row-height) + 2 * var(--pad));
   }

@@ -30,8 +30,8 @@ const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
 const canonical = new URL(pathname, Astro.site);
 const socialImage = new URL(image, Astro.site);
 const navigationLinks = [
-  { href: '/studio', label: 'Studio', current: pathname === '/studio' },
   { href: '/leistungen', label: 'Leistungen', current: pathname.startsWith('/leistungen') },
+  { href: '/studio', label: 'Studio', current: pathname === '/studio' },
   { href: '/projekte', label: 'Projekte', current: pathname.startsWith('/projekte') },
   { href: '/kontakt', label: 'Kontakt', current: pathname === '/kontakt' },
 ];
