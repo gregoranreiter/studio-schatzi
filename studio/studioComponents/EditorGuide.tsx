@@ -46,8 +46,7 @@ export function EditorGuide() {
         <Stack gap={6}>
           <Intro padding={[4, 5, 6]} radius={0} shadow={1}>
             <Stack gap={4}>
-              <Text size={1} weight="medium" style={{color: '#090909'}}>START & HILFE</Text>
-              <Heading as="h1" size={4} style={{color: '#090909'}}>Einfach zu pflegen. Nicht basic.</Heading>
+              <Heading as="h1" size={4} style={{color: '#090909'}}>Start &amp; Hilfe</Heading>
               <Text size={2} style={{color: '#090909', lineHeight: 1.5, maxWidth: 650}}>
                 Das CMS zeigt nur die Entscheidungen, die es im Design wirklich gibt. Bereich öffnen, Inhalt bearbeiten, die gelbe Komposition prüfen und veröffentlichen. Klar, schnell und trotzdem präzise.
               </Text>
