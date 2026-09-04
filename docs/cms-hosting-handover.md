@@ -19,6 +19,9 @@ Editors should start with the [CMS editor guide](cms-editor-guide.md). This docu
 - The CMS preview origin is registered with Sanity CORS using credential support.
 - Wrangler is authorized through the remote-device flow, and both configurations are pinned to the Studio Schatzi account ID `40eb2bae1ed3bb7a25b98ea43804a113`.
 - The editor guide and the Studio's built-in **Start & Hilfe** screen are deployed.
+- GitHub repository `gregoranreiter/studio-schatzi` is connected to both Workers through Workers Builds. Production and preview triggers use the shared repository root and build cache.
+- Production builds for both Workers have completed successfully through the Git connection.
+- The site deploy hook **Sanity production publish** and Sanity webhook **Cloudflare: Website neu bauen** are active. A deploy-hook build completed successfully end to end.
 - The former Vercel password middleware has been removed. Prelaunch access belongs at the Cloudflare edge, not in repository code.
 
 The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
@@ -131,15 +134,15 @@ Connect the same Git repository to two separate Workers Builds projects. Keep th
 | `studio-schatzi-site` | `pnpm build` | `pnpm exec wrangler deploy` |
 | `studio-schatzi-cms` | `pnpm cms:build` | `pnpm --dir studio exec wrangler deploy` |
 
-Use `main` as the production branch. The website build reads the public Sanity dataset and needs no secret environment variables.
+Use `main` as the production branch. Non-production branches use the corresponding `wrangler versions upload` command and do not replace production. The website build reads the public Sanity dataset and needs no secret environment variables. These triggers are configured and verified; future pushes to GitHub start both builds.
 
-Create a site Worker deploy hook named `Sanity publish`. In the Sanity project management console, create an HTTP webhook pointing to that URL and use this filter:
+The site Worker deploy hook is named **Sanity production publish**. The Sanity HTTP webhook is named **Cloudflare: Website neu bauen** and uses this filter:
 
 ```text
-_type in ["homePage", "project", "service", "studioPage", "contactPage", "clientLogoSet", "redirect"] && !(_id in path("drafts.**"))
+_type in ["homePage", "project", "service", "studioPage", "contactPage", "clientLogoSet", "redirect"]
 ```
 
-Trigger on create, update, and delete. Draft edits must not rebuild the site; publishing, unpublishing, and deleting published content should.
+It triggers on create, update, and delete in the `production` dataset. Draft and release-version events are disabled, so publishing, unpublishing, and deleting published content rebuild the site while routine draft editing does not. The deploy-hook URL is a credential stored only in Cloudflare and Sanity; never copy it into this repository or ordinary documentation.
 
 ### Prelaunch access
 

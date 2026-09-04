@@ -13,7 +13,7 @@ This guide is for day-to-day editing. The CMS is intentionally restrained: it re
 
 Sanity keeps unpublished work as a draft. **Publish** makes it available to the website build; it does not discard the previous version history.
 
-The website is static. During the current setup phase, a publish must be followed by a manual website deployment before the public review URL changes. Automatic publish-to-deploy is the next operational step and will remove that delay.
+The website is static. Publishing one of the maintained website documents automatically starts a fresh Cloudflare build. The public review URL normally updates within a few minutes; draft edits do not trigger a build.
 
 ## Where content lives
 
@@ -115,7 +115,7 @@ Never run `pnpm cms:bootstrap` as an editing command. It overwrites the stable m
 ## If something looks wrong
 
 - A disabled Publish button usually means a required field or referenced item is missing. Follow the validation message beside the field.
-- If a published change is visible in Sanity but not on the website, the static website deployment has not run yet.
+- If a published change is visible in Sanity but not on the website, wait a few minutes and reload. If it still has not appeared, ask the technical maintainer to check the Sanity webhook and Cloudflare build history.
 - If an image composition feels wrong, adjust its layout, crop, or hotspot rather than preparing a second copy prematurely.
 - Use Sanity document history to restore an earlier content version; then publish and rebuild the website.
 - For hosting, deploy hooks, DNS, Access, or rollback, use the [CMS and hosting handover](cms-hosting-handover.md).

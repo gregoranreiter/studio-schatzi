@@ -73,7 +73,7 @@ export function EditorGuide() {
             </Flex>
             <Card padding={4} radius={0} tone="caution">
               <Text size={1} style={{lineHeight: 1.5}}>
-                Aktuell wird die statische Website nach Publish noch manuell neu bereitgestellt. Die automatische Veröffentlichung ist der nächste technische Einrichtungsschritt.
+                Publish startet automatisch einen neuen Website-Build. Die öffentliche Vorschau ist normalerweise nach wenigen Minuten aktuell; Entwürfe lösen keinen Build aus.
               </Text>
             </Card>
           </Stack>
