@@ -1,121 +1,125 @@
-# Studio Schatzi CMS editor guide
+# Studio Schatzi CMS – kurz erklärt
 
-This guide is for day-to-day editing. The CMS is intentionally restrained: it represents the layouts that exist on the website instead of exposing a general page builder.
+Das CMS ist bewusst reduziert. Nicht, weil die Website basic ist, sondern weil hier nur die Entscheidungen auftauchen, die es im Design wirklich gibt. So bleibt die Pflege einfach, schnell und trotzdem präzise.
 
 - CMS: <https://studio-schatzi-cms.fragrant-buffer.workers.dev>
-- Website preview: <https://studio-schatzi-site.fragrant-buffer.workers.dev>
+- Website: <https://studio-schatzi-site.fragrant-buffer.workers.dev>
 
-## The editing rhythm
+## So läuft’s
 
-1. Open the relevant area in the left navigation.
-2. Edit the content and use the yellow composition above the fields to check order, scale, and placement.
-3. Resolve any validation messages, then select **Publish**.
+1. Links den richtigen Bereich öffnen.
+2. Inhalt bearbeiten und die gelbe Darstellung prüfen.
+3. Validierungen lösen und **Publish** drücken.
 
-Sanity keeps unpublished work as a draft. **Publish** makes it available to the website build; it does not discard the previous version history.
+Alles, was noch nicht veröffentlicht ist, bleibt als Entwurf in Sanity. Mit **Publish** wird die Änderung freigegeben und automatisch ein neuer Website-Build gestartet. Die Website ist normalerweise nach wenigen Minuten aktuell. Reines Arbeiten am Entwurf löst keinen Build aus.
 
-The website is static. Publishing one of the maintained website documents automatically starts a fresh Cloudflare build. The public review URL normally updates within a few minutes; draft edits do not trigger a build.
+## Was wo gepflegt wird
 
-## Where content lives
-
-| Area | What it controls |
+| Bereich | Was du hier steuerst |
 | --- | --- |
-| Startseite | Main headline, selected projects, their order, and full/left/right placement. |
-| Projekte | Project copy, URL, services, cover, gallery rhythm, related projects, and archive order. |
-| Leistungen | Service headline, chapters, project examples, contact CTA, and navigation order. |
-| Studio | Headline and one ordered stream of rich-text and image blocks. |
-| Kontakt | Email, phone, address, and an optional ordered list of social links. |
-| Kundenlogos | Footer logos, their order, and relative visual width. |
-| Technik → Weiterleitungen | Old URLs that must continue to work after a URL change. |
+| Startseite | Headline, Projektauswahl, Reihenfolge und Platzierung. |
+| Projekte | Texte, URL, Leistungen, Titelbild, Galerie, verwandte Projekte und Archiv-Reihenfolge. |
+| Leistungen | Headline, Kapitel, Projektbeispiele, Kontaktimpuls und Reihenfolge. |
+| Studio | Headline und ein geordneter Stream aus Text- und Bildblöcken. |
+| Kontakt | E-Mail, Telefon, Adresse und Social Links. |
+| Kundenlogos | Logos, Reihenfolge und ihre relative visuelle Größe. |
+| Technik → Weiterleitungen | Alte URLs, die nach einer Änderung weiter funktionieren sollen. |
 
 ## Startseite
 
-Each entry combines a project reference with one of three placements:
+Jeder Eintrag verbindet ein Projekt mit einer von drei klaren Platzierungen:
 
-- **Volle Breite** uses all four columns.
-- **Links, drei Spalten** uses columns one to three.
-- **Rechts, drei Spalten** uses columns two to four.
+- **Volle Breite** nutzt alle vier Spalten.
+- **Links, drei Spalten** nutzt die ersten drei Spalten.
+- **Rechts, drei Spalten** nutzt die letzten drei Spalten.
 
-Drag entries to change their order. A project must already exist and be published before it can appear reliably on the published site. Keep the selection deliberate; the schema allows no more than six projects.
+Die Reihenfolge lässt sich direkt verschieben. Die gelbe Darstellung zeigt die echte Komposition – deshalb braucht es für diese Entscheidung keine zusätzliche Vorschau.
+
+Ein Projekt muss zuerst angelegt und veröffentlicht sein, bevor es verlässlich auf der veröffentlichten Website erscheinen kann. Maximal sechs Projekte halten die Startseite fokussiert.
 
 ## Projekte
 
-The **Titelbild** is reused across the homepage, archive, related-project cards, and service examples. Set its crop and hotspot with all of those contexts in mind.
+Das **Titelbild** taucht an mehreren Stellen auf: auf der Startseite, im Archiv, bei verwandten Projekten und in den Leistungen. Crop und Hotspot also so setzen, dass das Bild in all diesen Formaten funktioniert.
 
-Every image requires a **Bildbeschreibung**. Describe what is visible and meaningful, rather than repeating the project title. The description is read aloud when the image cannot be seen.
+Jedes Bild braucht eine **Bildbeschreibung**. Beschreibe kurz, was wirklich zu sehen und relevant ist – nicht einfach noch einmal den Projektnamen.
 
-The gallery offers three compositions:
+Für die Galerie gibt es drei Formate:
 
-- **Breit** spans the row.
-- **Halb** shares a row with another half-width image.
-- **Hochformat** uses the narrower portrait rhythm.
+- **Breit** geht über die ganze Zeile.
+- **Halb** teilt sich eine Zeile mit einem zweiten Bild.
+- **Hochformat** läuft im schmaleren Portrait-Rhythmus.
 
-The yellow gallery representation shows the sequence and approximate rhythm. Drag images to reorder them.
+Die gelbe Galerie zeigt Reihenfolge und Rhythmus ziemlich genau. Bilder können direkt verschoben werden.
 
-Exactly two **Weiter im Archiv** projects are required. A new project is not automatically added to the homepage or a service page; add those references separately when wanted.
+Unter **Weiter im Archiv** werden genau zwei Projekte ausgewählt. Ein neues Projekt erscheint nicht automatisch auf der Startseite oder bei einer Leistung. Es wird nur dort sichtbar, wo es bewusst ausgewählt oder verknüpft wurde.
 
-Treat the **Adresse** field as permanent after a project has been shared publicly. If it must change, create a redirect from the old path in **Technik → Weiterleitungen** before publishing the new address.
+Die **Adresse** eines Projekts sollte nach dem Launch stabil bleiben. Falls sie sich ändern muss, zuerst unter **Technik → Weiterleitungen** die alte Adresse weiterleiten und dann die neue veröffentlichen.
 
 ## Leistungen
 
-The **Headline** is used both on the service overview and as the service-page headline. Chapters are kept as deliberate title-and-text pairs rather than free-form sections.
+Die **Headline** funktioniert auf der Leistungsübersicht und auf der jeweiligen Detailseite. Die Kapitel bleiben bewusst als klare Titel-und-Text-Paare aufgebaut – kein allgemeiner Pagebuilder, sondern genau die Struktur, die das Design braucht.
 
-Each project example contains a project reference and a short **Einordnung** written for that particular service. Reordering the entries also reorders them on the page.
+Jedes Projektbeispiel besteht aus einem Projekt und einer kurzen **Einordnung** für genau diese Leistung. Die Reihenfolge im CMS ist auch die Reihenfolge auf der Website.
 
-The **Kontaktimpuls** is one composed CTA:
+Der **Kontaktimpuls** ist ein zusammengehöriger CTA:
 
-- **Einladung** is the visible statement.
-- **Linktext** is the button label.
-- **E-Mail-Betreff** becomes the subject of the email to the address maintained under Kontakt.
+- **Einladung** ist der sichtbare Satz.
+- **Linktext** ist der Text des Links.
+- **E-Mail-Betreff** landet im Betreff der vorbereiteten E-Mail.
+
+Die Empfängeradresse kommt immer aus dem Bereich Kontakt. Sie muss deshalb nur an einer Stelle gepflegt werden.
 
 ## Studio
 
-The Studio page uses one ordered content array with two block types:
+Die Studio-Seite ist ein geordneter Stream mit zwei Blocktypen:
 
-- **Text** is one restrained rich-text field. It supports paragraphs and links, without extra heading styles or decorative formatting.
-- **Bild** can be **Volle Breite** or **Rechts, drei Spalten**.
+- **Text** ist ein zurückhaltendes Rich-Text-Feld für Absätze und Links. Keine zusätzlichen Überschriften oder dekorativen Formatierungen.
+- **Bild** kann **Volle Breite** oder **Rechts, drei Spalten** stehen.
 
-Drag the blocks into the intended reading order. The yellow four-column composition is the main CMS representation; use the live website only as the final browser check.
+Die Blöcke lassen sich frei in die gewünschte Lesereihenfolge bringen. Auch hier zeigt die gelbe Vier-Spalten-Darstellung die eigentliche Layoutentscheidung. Die Live-Website ist danach nur noch der finale Check im Browser.
 
-## Kontakt and social links
+## Kontakt und Social Links
 
-Email, phone, and address are required. Social links are optional and flexible: each item has a visible label and a full `https://` URL. Their order in the array is their order on the page.
+E-Mail, Telefon und Adresse sind fix vorgesehen. Social Links sind bewusst flexibel: Jeder Eintrag hat einen sichtbaren Namen und eine vollständige `https://`-URL. Die Reihenfolge im Array ist die Reihenfolge auf der Website.
 
-Changing the contact email also changes the destination used by all service CTAs.
+Wenn sich die Kontaktadresse ändert, ändert sich damit auch automatisch das Ziel aller CTAs auf den Leistungsseiten.
 
 ## Kundenlogos
 
-Use SVG when a clean vector logo is available; PNG and WebP are also accepted. **Relative Breite** changes visual scale without modifying the original file. Start at `1` and adjust against the other logos in the yellow representation.
+Wenn möglich ein sauberes SVG verwenden. PNG und WebP funktionieren ebenfalls.
 
-The customer name supplies the accessible description and must identify the organization clearly.
+Mit **Relative Breite** wird nur die optische Größe im Verhältnis zu den anderen Logos verändert. Am besten bei `1` starten und dann direkt in der gelben Darstellung feinjustieren.
+
+Der Kundenname ist auch die zugängliche Bildbeschreibung. Er sollte die Organisation eindeutig benennen.
 
 ## Weiterleitungen
 
-Use redirects when a published project or service path changes.
+Weiterleitungen sind nötig, wenn sich eine bereits veröffentlichte Projekt- oder Leistungsadresse ändert.
 
-- **Von** is the old path and begins with `/`.
-- **Nach** is the replacement path or a full HTTPS URL.
-- **Status** is normally **301 — Permanent**. Use a temporary status only when the old path is expected to return.
+- **Von** ist der alte Pfad und beginnt mit `/`.
+- **Nach** ist der neue Pfad oder eine vollständige HTTPS-Adresse.
+- **Status** ist normalerweise **301 — Permanent**. Temporär nur verwenden, wenn die alte Adresse später wieder zurückkommen soll.
 
-Redirects are validated and written into the static Cloudflare build. Duplicate sources, self-links, and invalid paths stop the build instead of publishing ambiguous routing.
+Die Weiterleitungen werden beim Website-Build geprüft. Doppelte Quellen, Selbstverlinkungen oder ungültige Pfade stoppen den Build, bevor etwas Unklares veröffentlicht wird.
 
-## Safe changes and coordinated changes
+## Was du einfach machen kannst
 
-Routine copy edits, image crops, alt text, block order, project selection, CTA copy, social links, and logo scale are normal editorial changes.
+Texte ändern, Bilder croppen, Bildbeschreibungen ergänzen, Blöcke sortieren, Projekte auswählen, CTA-Texte anpassen, Social Links pflegen und Logogrößen feinjustieren: alles ganz normale redaktionelle Arbeit.
 
-Coordinate these changes before publishing:
+Kurz abstimmen sollten wir uns bei:
 
-- changing a project or service URL;
-- deleting a project referenced by the homepage, a service, or related projects;
-- removing required images or related-project references;
-- changing the canonical domain or legal links;
-- running a migration or disaster-recovery command.
+- neuen oder geänderten URLs;
+- dem Löschen verknüpfter Projekte;
+- fehlenden Pflichtbildern oder Projektverknüpfungen;
+- Änderungen an Domain oder Rechtstexten;
+- Migrationen oder Wiederherstellung aus einem alten Datenstand.
 
-Never run `pnpm cms:bootstrap` as an editing command. It overwrites the stable migrated documents from the repository snapshot and exists only for deliberate disaster recovery.
+`pnpm cms:bootstrap` ist kein normaler CMS-Befehl. Er überschreibt die stabilen Inhalte mit dem ursprünglichen Datenstand und ist nur für einen bewusst geplanten Notfall gedacht.
 
-## If something looks wrong
+## Wenn etwas nicht passt
 
-- A disabled Publish button usually means a required field or referenced item is missing. Follow the validation message beside the field.
-- If a published change is visible in Sanity but not on the website, wait a few minutes and reload. If it still has not appeared, ask the technical maintainer to check the Sanity webhook and Cloudflare build history.
-- If an image composition feels wrong, adjust its layout, crop, or hotspot rather than preparing a second copy prematurely.
-- Use Sanity document history to restore an earlier content version; then publish and rebuild the website.
-- For hosting, deploy hooks, DNS, Access, or rollback, use the [CMS and hosting handover](cms-hosting-handover.md).
+- Ist **Publish** nicht möglich, fehlt meistens ein Pflichtfeld oder eine Verknüpfung. Die Meldung direkt am Feld zeigt, was noch offen ist.
+- Ist eine veröffentlichte Änderung noch nicht auf der Website, ein paar Minuten warten und neu laden. Falls sie dann noch fehlt, sollten Sanity-Webhook und Cloudflare-Build geprüft werden.
+- Fühlt sich ein Bild im Layout falsch an, zuerst Format, Crop oder Hotspot anpassen – nicht vorschnell eine zweite Datei bauen.
+- Eine ältere Fassung lässt sich über die Dokumenthistorie in Sanity wiederherstellen. Danach erneut veröffentlichen.
+- Für Hosting, Deploy Hooks, DNS, Access und Rollback gibt es die technische [CMS- und Hosting-Übergabe](cms-hosting-handover.md).
