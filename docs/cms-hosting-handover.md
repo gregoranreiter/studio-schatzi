@@ -17,9 +17,11 @@ Editors should start with the [CMS editor guide](cms-editor-guide.md). This docu
   - Site: `https://studio-schatzi-site.fragrant-buffer.workers.dev`
   - CMS: `https://studio-schatzi-cms.fragrant-buffer.workers.dev`
 - The CMS preview origin is registered with Sanity CORS using credential support.
+- Wrangler is authorized through the remote-device flow, and both configurations are pinned to the Studio Schatzi account ID `40eb2bae1ed3bb7a25b98ea43804a113`.
+- The editor guide and the Studio's built-in **Start & Hilfe** screen are deployed.
 - The former Vercel password middleware has been removed. Prelaunch access belongs at the Cloudflare edge, not in repository code.
 
-Claiming preserved the Workers but did not authenticate Wrangler for later deployments. Future deployments require Wrangler authorization into **Studio Schatzi** on the development computer. The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
+The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
 
 ## Architecture
 
@@ -82,11 +84,11 @@ The public Sanity project ID and dataset are committed configuration because bot
 
 `pnpm cms:bootstrap` overwrites stable Sanity document IDs from that repository snapshot. It exists for disaster recovery and should not be run as a normal content command after editorial work begins.
 
-## Cloudflare account completion
+## Cloudflare account boundary
 
 The account is named **Studio Schatzi**. Its unchanged Workers subdomain is `fragrant-buffer.workers.dev`; this technical subdomain is independent of the dashboard account name. These URLs can remain the only public review environments until a domain cutover is wanted. Do not deploy any part of this project into the BauConsult Cloudflare account.
 
-Complete this when working on the development computer:
+Verify the active identity when setting up a new development computer:
 
 ```sh
 nvm use
@@ -94,7 +96,7 @@ pnpm exec wrangler login
 pnpm exec wrangler whoami
 ```
 
-The login must show and select the dedicated **Studio Schatzi** account. If Wrangler lists multiple accounts, confirm its account ID before deploying and add that public account ID to both Wrangler configurations. Never select the BauConsult account.
+The login must show the dedicated **Studio Schatzi** account. Both Wrangler configurations already contain its public account ID, so deploy commands cannot fall back to another account. Never change that ID to the BauConsult account.
 
 ### Authenticated deployment
 

@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "studio-schatzi-site",
+  "account_id": "40eb2bae1ed3bb7a25b98ea43804a113",
   "compatibility_date": "2026-09-04",
   "assets": {
     "directory": "./dist",

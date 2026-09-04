@@ -10,7 +10,7 @@ The code now lives at the root of the Git repository. The original website and d
 
 ## CMS and hosting status
 
-The site now has a purpose-built Sanity Studio and a populated, separate Sanity production dataset. Astro reads that content during static builds. The repository contains isolated Cloudflare Worker configurations for the public site and CMS. Both pass local packaging checks and are live for review at `fragrant-buffer.workers.dev` URLs in a claimed, dedicated Studio Schatzi Cloudflare account. The BauConsult Cloudflare account is out of scope and must remain untouched. Future deployments still require Cloudflare CLI authorization into the dedicated account on the development computer.
+The site now has a purpose-built Sanity Studio and a populated, separate Sanity production dataset. Astro reads that content during static builds. The repository contains isolated Cloudflare Worker configurations for the public site and CMS. Both pass local packaging checks and are live for review at `fragrant-buffer.workers.dev` URLs in a claimed, dedicated Studio Schatzi Cloudflare account. Wrangler is authorized, both configurations are pinned to that account, and the editor onboarding is deployed. The BauConsult Cloudflare account is out of scope and must remain untouched.
 
 The domain still uses World4You nameservers and web hosting. Moving it to Cloudflare requires a verified DNS and mail-record migration, not only an A-record change. See [CMS and hosting handover](cms-hosting-handover.md) for the exact architecture, completed work, deployment, Access, webhook, DNS, and rollback procedure.
 
@@ -20,7 +20,7 @@ The domain still uses World4You nameservers and web hosting. Moving it to Cloudf
 - Confirm that every selected client image may appear publicly. Review the provisional Donauwalther case study.
 - Confirm the displayed email, phone number, studio description, and canonical domain.
 - Supply and approve the legal notice and privacy text, then add their pages and navigation links. They are not present in the supplied site. The footer's “Imprint & Privacy” label is currently plain text, awaiting an approved destination.
-- Authorize Wrangler against the dedicated **Studio Schatzi** Cloudflare account, protect the two Workers there, connect Workers Builds, and test the Sanity deploy hook. Do not use the BauConsult account.
+- Protect the two Workers in the dedicated **Studio Schatzi** account, connect Workers Builds, and test the Sanity deploy hook. Do not use the BauConsult account.
 - Inventory all World4You DNS records before changing nameservers; preserve MX, mail host, SPF, DKIM, DMARC, and verification records.
 - Connect `www.studioschatzi.at` to the site Worker, redirect the apex to `www`, and connect `cms.studioschatzi.at` to the CMS Worker.
 - After the domain is confirmed, add the production sitemap and robots policy.
