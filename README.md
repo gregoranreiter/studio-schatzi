@@ -32,7 +32,7 @@ GitHub Actions runs the same locked install and build for pushes to `main` and p
 
 ## Editing the website
 
-Day-to-day content is edited and published in Sanity Studio. The complete editorial model and account workflow are documented in [the CMS and hosting handover](docs/cms-hosting-handover.md).
+Day-to-day content is edited and published in Sanity Studio. Start with the [CMS editor guide](docs/cms-editor-guide.md); the complete technical model and account workflow are documented in [the CMS and hosting handover](docs/cms-hosting-handover.md).
 
 | Location | Content |
 | --- | --- |

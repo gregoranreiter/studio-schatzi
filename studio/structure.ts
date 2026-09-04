@@ -3,10 +3,12 @@ import {CaseIcon} from '@sanity/icons/Case'
 import {CogIcon} from '@sanity/icons/Cog'
 import {EnvelopeIcon} from '@sanity/icons/Envelope'
 import {HomeIcon} from '@sanity/icons/Home'
+import {HelpCircleIcon} from '@sanity/icons/HelpCircle'
 import {ImagesIcon} from '@sanity/icons/Images'
 import {ProjectsIcon} from '@sanity/icons/Projects'
 import type {DocumentActionComponent, Template, TemplateResolver} from 'sanity'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
+import {EditorGuide} from './studioComponents/EditorGuide'
 
 const singletonTypes = new Set(['homePage', 'studioPage', 'contactPage', 'clientLogoSet'])
 
@@ -25,6 +27,12 @@ const singletonItem = (
 export const structure: StructureResolver = (S) => S.list()
   .title('Inhalte')
   .items([
+    S.listItem()
+      .id('editorGuide')
+      .title('Start & Hilfe')
+      .icon(HelpCircleIcon)
+      .child(S.component().id('editorGuide').title('Start & Hilfe').component(EditorGuide)),
+    S.divider(),
     singletonItem(S, 'homePage', 'homePage', 'Startseite', HomeIcon),
     S.divider(),
     S.documentTypeListItem('project').title('Projekte').icon(ProjectsIcon),

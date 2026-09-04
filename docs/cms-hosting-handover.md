@@ -2,6 +2,8 @@
 
 Status date: 4 September 2026
 
+Editors should start with the [CMS editor guide](cms-editor-guide.md). This document covers technical operation, hosting, and recovery.
+
 ## What is complete
 
 - A separate Sanity project named **Studio Schatzi** exists under the previously requested shared Sanity login. It does not reuse or modify the BauConsult Sanity project.
