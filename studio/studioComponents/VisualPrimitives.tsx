@@ -1,4 +1,3 @@
-import {Card, Text} from '@sanity/ui'
 import {createImageUrlBuilder} from '@sanity/image-url'
 import {useEffect, useMemo, useState} from 'react'
 import {useClient} from 'sanity'
@@ -6,27 +5,10 @@ import styled from 'styled-components'
 
 export const API_VERSION = '2026-09-04'
 
-export const Canvas = styled(Card)`
-  background: #fffa91;
-  border-radius: 0;
-  color: #090909;
-  overflow: hidden;
-`
-
-export const CanvasInset = styled.div`
-  padding: clamp(16px, 3vw, 32px);
-`
-
 export const FourColumnGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(6px, 1.25vw, 14px);
-`
-
-export const CanvasLabel = styled(Text)`
-  display: block;
-  margin-bottom: 12px;
-  opacity: 0.58;
 `
 
 export const VisualImage = styled.img`
