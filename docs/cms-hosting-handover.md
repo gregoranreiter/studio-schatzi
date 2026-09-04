@@ -4,20 +4,20 @@ Status date: 4 September 2026
 
 ## What is complete
 
-- A separate Sanity project named **Studio Schatzi** exists in the same Sanity account as BauConsult.
+- A separate Sanity project named **Studio Schatzi** exists under the previously requested shared Sanity login. It does not reuse or modify the BauConsult Sanity project.
 - Project ID: `cun0jylh`; dataset: `production`; dataset visibility: public read, authenticated write.
 - The existing five projects, four services, four singleton pages, 30 project images, and seven client logos have been migrated.
 - The Studio schema, visual array editors, and production Studio bundle are implemented in `studio/`.
 - The Astro site reads published Sanity content at build time and fails a production build when required content or references are invalid.
 - Two static Cloudflare Worker packages are configured: `studio-schatzi-site` and `studio-schatzi-cms`.
 - The site and Studio both pass Wrangler dry-run packaging.
-- Both packages have been deployed for review to a shared temporary Cloudflare account:
+- Both packages have been deployed for review to the dedicated Cloudflare account **Fragrant Buffer**, which has been claimed for Studio Schatzi:
   - Site: `https://studio-schatzi-site.fragrant-buffer.workers.dev`
   - CMS: `https://studio-schatzi-cms.fragrant-buffer.workers.dev`
 - The CMS preview origin is registered with Sanity CORS using credential support.
 - The former Vercel password middleware has been removed. Prelaunch access belongs at the Cloudflare edge, not in repository code.
 
-The preview account is disposable unless its private claim link is completed within Cloudflare's one-hour window. Claiming preserves the preview Workers, but it does not authenticate Wrangler for later deployments. Permanent deployment to the existing account that contains BauConsult still requires Wrangler authorization on the development computer.
+Claiming preserved the Workers but did not authenticate Wrangler for later deployments. Future deployments require Wrangler authorization into **Fragrant Buffer** on the development computer. The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
 
 ## Architecture
 
@@ -82,7 +82,7 @@ The public Sanity project ID and dataset are committed configuration because bot
 
 ## Cloudflare account completion
 
-The temporary `fragrant-buffer.workers.dev` URLs are review environments, not the final account architecture. Do not point production DNS at them. If the preview account is claimed, it can remain available for review; the intended permanent Workers should still be created in the exact existing Cloudflare account selected for Studio Schatzi.
+The `fragrant-buffer.workers.dev` URLs are the current review environments in Studio Schatzi's dedicated, claimed Cloudflare account. They can remain the only public URLs until a domain cutover is wanted. Do not deploy any part of this project into the BauConsult Cloudflare account.
 
 Complete this when working on the development computer:
 
@@ -92,9 +92,9 @@ pnpm exec wrangler login
 pnpm exec wrangler whoami
 ```
 
-The login should identify the same Cloudflare account that contains BauConsult. Do not reuse a BauConsult Worker, deploy hook, or environment; only the account is shared.
+The login must show and select the dedicated **Fragrant Buffer** account. If Wrangler lists multiple accounts, confirm its account ID before deploying and add that public account ID to both Wrangler configurations. Never select the BauConsult account.
 
-### First deployment
+### Authenticated deployment
 
 From the repository root:
 
@@ -139,7 +139,7 @@ Trigger on create, update, and delete. Draft edits must not rebuild the site; pu
 
 ### Prelaunch access
 
-In the site Worker's **Access** tab, protect **all traffic** with Cloudflare Access. Allow only the owner's confirmed email identity or reuse the existing exact-person BauConsult policy if it has the right membership. This protects the Worker, its previews, and every route before the static assets are served.
+In the site Worker's **Access** tab, protect **all traffic** with a Studio Schatzi-specific Cloudflare Access policy. Allow only the owner's confirmed email identity. Do not reuse or modify a BauConsult policy. This protects the Worker, its previews, and every route before the static assets are served.
 
 The Sanity Studio already requires a Sanity login. Cloudflare Access may also protect the CMS Worker if a second perimeter is desired, but that creates two sign-in steps.
 
@@ -163,7 +163,7 @@ No `cms` record or CAA record was returned. This is a point-in-time inventory, n
 
 Cut over in this order:
 
-1. Add `studioschatzi.at` as a zone in the existing Cloudflare account.
+1. Add `studioschatzi.at` as a zone in the dedicated Studio Schatzi Cloudflare account (**Fragrant Buffer**).
 2. Compare Cloudflare's DNS scan with the World4You control panel. Recreate every mail, SPF, DKIM, DMARC, verification, and other non-web record exactly. Keep mail-related hosts DNS-only.
 3. Deploy and verify both Workers on their `workers.dev` URLs while the old site remains untouched.
 4. Change the registrar nameservers only after the DNS inventory is complete. This is a deliberate owner-approved action because missing records can interrupt email.
