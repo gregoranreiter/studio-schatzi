@@ -1,7 +1,7 @@
-import {Badge, Box, Grid, Stack, Text} from '@sanity/ui'
+import {Grid, Stack} from '@sanity/ui'
 import type {ArrayOfObjectsInputProps} from 'sanity'
 import styled from 'styled-components'
-import {Canvas, CanvasInset, CanvasLabel, type SanityImageSource, useStudioImageUrl, VisualImage} from './VisualPrimitives'
+import {type SanityImageSource, useStudioImageUrl, VisualImage} from './VisualPrimitives'
 
 type GalleryValue = SanityImageSource & {
   _key?: string
@@ -16,8 +16,11 @@ const GalleryFrame = styled.div<{layout: string}>`
 
 const ImageFrame = styled.div<{layout: string}>`
   aspect-ratio: ${({layout}) => layout === 'portrait' ? '3 / 4' : layout === 'half' ? '4 / 3' : '16 / 9'};
-  background: #ece9df;
   overflow: hidden;
+`
+
+const GalleryImage = styled(VisualImage)`
+  background: transparent;
 `
 
 function GalleryImageVisual({item}: {item: GalleryValue}) {
@@ -25,8 +28,7 @@ function GalleryImageVisual({item}: {item: GalleryValue}) {
   const layout = item.layout || 'wide'
   return (
     <GalleryFrame layout={layout}>
-      <ImageFrame layout={layout}>{imageUrl && <VisualImage src={imageUrl} alt="" />}</ImageFrame>
-      <Box paddingTop={2}><Text size={1} textOverflow="ellipsis">{item.alt || 'Bildbeschreibung fehlt'}</Text></Box>
+      <ImageFrame layout={layout}>{imageUrl && <GalleryImage src={imageUrl} alt="" />}</ImageFrame>
     </GalleryFrame>
   )
 }
@@ -35,15 +37,11 @@ export function GalleryInput(props: ArrayOfObjectsInputProps) {
   const value = (props.value || []) as GalleryValue[]
   return (
     <Stack gap={4}>
-      <Canvas shadow={1}>
-        <CanvasInset>
-          <CanvasLabel size={1}>Rhythmus der Projektgalerie</CanvasLabel>
-          <Grid gridTemplateColumns={2} gap={3}>
-            {value.map((item, index) => <GalleryImageVisual key={item._key || index} item={item} />)}
-          </Grid>
-          {!value.length && <Badge tone="caution">Die Galerie ist leer</Badge>}
-        </CanvasInset>
-      </Canvas>
+      {value.length > 0 && (
+        <Grid gridTemplateColumns={2} gap={3}>
+          {value.map((item, index) => <GalleryImageVisual key={item._key || index} item={item} />)}
+        </Grid>
+      )}
       {props.renderDefault(props)}
     </Stack>
   )

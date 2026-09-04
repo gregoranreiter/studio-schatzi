@@ -18,9 +18,6 @@ export type Service = {
   chapters: ServiceChapter[];
   casesIntro: string;
   cases: ServiceCase[];
-  ctaText: string;
-  ctaLink: string;
-  ctaSubject: string;
 };
 
 export const services: Service[] = [
@@ -46,9 +43,6 @@ export const services: Service[] = [
       { project: 'auf-der-matte', text: 'Die Positionierung verbindet Ruhe und Bewegung zu einer einfachen Idee, die vom Praxisraum bis zur Website verständlich bleibt.' },
       { project: 'gretzl', text: 'Eine eigenwillige, offene Identität macht aus einem Ort eine Haltung und gibt wechselnden Anlässen einen gemeinsamen Absender.' },
     ],
-    ctaText: 'Das Angebot ist gut, aber noch nicht klar genug erzählt?',
-    ctaLink: 'Positionierung schärfen',
-    ctaSubject: 'Positionierung schärfen',
   },
   {
     slug: 'markenentwicklung',
@@ -72,9 +66,6 @@ export const services: Service[] = [
       { project: 'karrer-oehlinger-architekten', text: 'Ein präzises typografisches System schafft Ordnung und lässt zugleich der Architektur, den Orten und ihren Geschichten Raum.' },
       { project: 'chrispi-architektur', text: 'Wenige geometrische Linien werden zur stillen Konstante zwischen Geschäftsausstattung, Signaletik und digitalem Auftritt.' },
     ],
-    ctaText: 'Die Substanz ist da. Jetzt braucht sie eine unverwechselbare Form.',
-    ctaLink: 'Marke entwickeln',
-    ctaSubject: 'Markenentwicklung besprechen',
   },
   {
     slug: 'kampagnen',
@@ -98,9 +89,6 @@ export const services: Service[] = [
       { project: 'gretzl', text: 'Wechselnde Veranstaltungen bekommen eine jeweils eigene Stimmung und bleiben durch den unverkennbaren Charakter des Hauses verbunden.' },
       { project: 'auf-der-matte', text: 'Das reduzierte Zeichensystem lässt sich vom stillen Praxis-Moment bis zur aufmerksamkeitsstarken Außenwerbung flexibel zuspitzen.' },
     ],
-    ctaText: 'Ein Anlass steht bevor und soll mehr werden als eine Reihe von Sujets?',
-    ctaLink: 'Kampagne anstoßen',
-    ctaSubject: 'Neue Kampagne',
   },
   {
     slug: 'websites',
@@ -124,9 +112,6 @@ export const services: Service[] = [
       { project: 'chrispi-architektur', text: 'Eine zurückhaltende Oberfläche gibt Projekten viel Raum und übersetzt die geometrische Markenidee in eine klare digitale Ordnung.' },
       { project: 'karrer-oehlinger-architekten', text: 'Der Webauftritt verbindet Architektur, Haltung und aktuelle Einblicke in einem System, das trotz vielfältiger Inhalte präzise bleibt.' },
     ],
-    ctaText: 'Die aktuelle Website zeigt nicht mehr, wie gut das Unternehmen heute ist?',
-    ctaLink: 'Website neu denken',
-    ctaSubject: 'Neue Website',
   },
 ];
 

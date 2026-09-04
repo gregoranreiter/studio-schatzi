@@ -3,7 +3,6 @@ import {homeProject} from './objects/homeProject'
 import {projectImage} from './objects/projectImage'
 import {serviceCase} from './objects/serviceCase'
 import {serviceChapter} from './objects/serviceChapter'
-import {serviceCta} from './objects/serviceCta'
 import {socialLink} from './objects/socialLink'
 import {studioImageBlock} from './objects/studioImageBlock'
 import {studioRichTextBlock} from './objects/studioRichTextBlock'
@@ -20,7 +19,6 @@ export const schemaTypes = [
   projectImage,
   serviceChapter,
   serviceCase,
-  serviceCta,
   studioRichTextBlock,
   studioImageBlock,
   socialLink,

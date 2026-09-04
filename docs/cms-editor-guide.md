@@ -8,7 +8,7 @@ Das CMS ist bewusst reduziert. Nicht, weil die Website basic ist, sondern weil h
 ## So läuft’s
 
 1. Links den richtigen Bereich öffnen.
-2. Inhalt bearbeiten und die gelbe Darstellung prüfen.
+2. Inhalt bearbeiten und prüfen.
 3. Validierungen lösen und **Publish** drücken.
 
 Alles, was noch nicht veröffentlicht ist, bleibt als Entwurf in Sanity. Mit **Publish** wird die Änderung freigegeben und automatisch ein neuer Website-Build gestartet. Die Website ist normalerweise nach wenigen Minuten aktuell. Reines Arbeiten am Entwurf löst keinen Build aus.
@@ -19,7 +19,7 @@ Alles, was noch nicht veröffentlicht ist, bleibt als Entwurf in Sanity. Mit **P
 | --- | --- |
 | Startseite | Headline, Projektauswahl, Reihenfolge und Platzierung. |
 | Projekte | Texte, URL, Leistungen, Titelbild, Galerie, verwandte Projekte und Archiv-Reihenfolge. |
-| Leistungen | Headline, Kapitel, Projektbeispiele, Kontaktimpuls und Reihenfolge. |
+| Leistungen | Headline, Kapitel, Projektbeispiele und Reihenfolge. |
 | Studio | Headline und ein geordneter Stream aus Text- und Bildblöcken. |
 | Kontakt | E-Mail, Telefon, Adresse und Social Links. |
 | Kundenlogos | Logos, Reihenfolge und ihre relative visuelle Größe. |
@@ -49,7 +49,7 @@ Für die Galerie gibt es drei Formate:
 - **Halb** teilt sich eine Zeile mit einem zweiten Bild.
 - **Hochformat** läuft im schmaleren Portrait-Rhythmus.
 
-Die gelbe Galerie zeigt Reihenfolge und Rhythmus ziemlich genau. Bilder können direkt verschoben werden.
+Die Galerie-Vorschau zeigt Reihenfolge und Rhythmus ziemlich genau. Bilder können direkt verschoben werden.
 
 Unter **Weiter im Archiv** werden genau zwei Projekte ausgewählt. Ein neues Projekt erscheint nicht automatisch auf der Startseite oder bei einer Leistung. Es wird nur dort sichtbar, wo es bewusst ausgewählt oder verknüpft wurde.
 
@@ -61,14 +61,6 @@ Die **Headline** funktioniert auf der Leistungsübersicht und auf der jeweiligen
 
 Jedes Projektbeispiel besteht aus einem Projekt und einer kurzen **Einordnung** für genau diese Leistung. Die Reihenfolge im CMS ist auch die Reihenfolge auf der Website.
 
-Der **Kontaktimpuls** ist ein zusammengehöriger CTA:
-
-- **Einladung** ist der sichtbare Satz.
-- **Linktext** ist der Text des Links.
-- **E-Mail-Betreff** landet im Betreff der vorbereiteten E-Mail.
-
-Die Empfängeradresse kommt immer aus dem Bereich Kontakt. Sie muss deshalb nur an einer Stelle gepflegt werden.
-
 ## Studio
 
 Die Studio-Seite ist ein geordneter Stream mit zwei Blocktypen:
@@ -76,19 +68,17 @@ Die Studio-Seite ist ein geordneter Stream mit zwei Blocktypen:
 - **Text** ist ein zurückhaltendes Rich-Text-Feld für Absätze und Links. Keine zusätzlichen Überschriften oder dekorativen Formatierungen.
 - **Bild** kann **Volle Breite** oder **Rechts, drei Spalten** stehen.
 
-Die Blöcke lassen sich frei in die gewünschte Lesereihenfolge bringen. Auch hier zeigt die gelbe Vier-Spalten-Darstellung die eigentliche Layoutentscheidung. Die Live-Website ist danach nur noch der finale Check im Browser.
+Die Blöcke lassen sich frei in die gewünschte Lesereihenfolge bringen. Das Bildformat wird direkt im jeweiligen Block gewählt.
 
 ## Kontakt und Social Links
 
 E-Mail, Telefon und Adresse sind fix vorgesehen. Social Links sind bewusst flexibel: Jeder Eintrag hat einen sichtbaren Namen und eine vollständige `https://`-URL. Die Reihenfolge im Array ist die Reihenfolge auf der Website.
 
-Wenn sich die Kontaktadresse ändert, ändert sich damit auch automatisch das Ziel aller CTAs auf den Leistungsseiten.
-
 ## Kundenlogos
 
 Wenn möglich ein sauberes SVG verwenden. PNG und WebP funktionieren ebenfalls.
 
-Mit **Relative Breite** wird nur die optische Größe im Verhältnis zu den anderen Logos verändert. Am besten bei `1` starten und dann direkt in der gelben Darstellung feinjustieren.
+Mit **Relative Breite** wird nur die optische Größe im Verhältnis zu den anderen Logos verändert. Am besten bei `1` starten und nur ändern, wenn ein Logo sichtbar zu groß oder zu klein wirkt.
 
 Der Kundenname ist auch die zugängliche Bildbeschreibung. Er sollte die Organisation eindeutig benennen.
 
@@ -104,7 +94,7 @@ Die Weiterleitungen werden beim Website-Build geprüft. Doppelte Quellen, Selbst
 
 ## Was du einfach machen kannst
 
-Texte ändern, Bilder croppen, Bildbeschreibungen ergänzen, Blöcke sortieren, Projekte auswählen, CTA-Texte anpassen, Social Links pflegen und Logogrößen feinjustieren: alles ganz normale redaktionelle Arbeit.
+Texte ändern, Bilder croppen, Bildbeschreibungen ergänzen, Blöcke sortieren, Projekte auswählen, Social Links pflegen und Logogrößen feinjustieren: alles ganz normale redaktionelle Arbeit.
 
 Kurz abstimmen sollten wir uns bei:
 

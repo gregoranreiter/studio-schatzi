@@ -53,10 +53,10 @@ The Studio intentionally exposes only decisions that exist in the design.
 | --- | --- | --- |
 | Startseite | Headline and selected projects | Maximum six; project thumbnails are shown in the actual full/left/right four-column placement. |
 | Projekte | Title, URL slug, summary, description, service list, cover, gallery, related projects, archive order | Service scope is an array; cover and gallery images require alt text; gallery cards show the real wide/half/portrait composition; exactly two related projects. |
-| Leistungen | Headline, chapters, project cases, CTA, order | Cases show project photography; each CTA has its statement, visible link label, and email subject. |
-| Studio | Headline and an ordered content array | A text block is one restrained Portable Text field; image blocks are either full width or right-aligned across three columns, represented on the four-column canvas. |
-| Kontakt | Email, phone, address, social links | Social links are a flexible ordered array of label plus URL; the editor shows the contact composition. |
-| Kundenlogos | Logo file, client name, relative width | The list renders actual SVG/PNG/WebP files and their relative scale. |
+| Leistungen | Headline, chapters, project cases, order | Cases reference published projects and their sequence matches the website. |
+| Studio | Headline and an ordered content array | A text block is one restrained Portable Text field; image blocks are either full width or right-aligned across three columns. |
+| Kontakt | Email, phone, address, social links | Social links are a flexible ordered array of label plus URL. |
+| Kundenlogos | Logo file, client name, relative width | SVG, PNG, and WebP files are accepted; relative width controls their visual scale. |
 | Weiterleitungen | Old path, new path, redirect status | Generated into Cloudflare's `_redirects` file during each site build; duplicates, self-links, and invalid paths fail the build. |
 
 Slug fields should be treated as stable after launch. If a project or service URL must change, publish a redirect before or together with the slug change.

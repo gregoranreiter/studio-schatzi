@@ -33,7 +33,7 @@ const GuideLink = styled.a`
 const areas = [
   ['Startseite', 'Headline, Projektauswahl und die echte Platzierung im Raster'],
   ['Projekte', 'Texte, Bilder, Galerie-Rhythmus und bewusste Verknüpfungen'],
-  ['Leistungen', 'Klare Kapitel, passende Projekte und ein eigener Kontaktimpuls'],
+  ['Leistungen', 'Klare Kapitel, passende Projekte und ihre Reihenfolge'],
   ['Studio', 'Ein geordneter Stream aus Text und Bildern im Vier-Spalten-Raster'],
   ['Kontakt', 'Kontaktdaten und eine flexible Liste für Social Links'],
   ['Kundenlogos', 'Reihenfolge und optische Größe im Verhältnis zueinander'],
@@ -48,7 +48,7 @@ export function EditorGuide() {
             <Stack gap={4}>
               <Heading as="h1" size={4} style={{color: '#090909'}}>Start &amp; Hilfe</Heading>
               <Text size={2} style={{color: '#090909', lineHeight: 1.5, maxWidth: 650}}>
-                Das CMS zeigt nur die Entscheidungen, die es im Design wirklich gibt. Bereich öffnen, Inhalt bearbeiten, die gelbe Komposition prüfen und veröffentlichen. Klar, schnell und trotzdem präzise.
+                Das CMS zeigt nur die Entscheidungen, die es im Design wirklich gibt. Bereich öffnen, Inhalt bearbeiten, prüfen und veröffentlichen. Klar, schnell und trotzdem präzise.
               </Text>
               <Flex gap={3} wrap="wrap">
                 <GuideLink href={SITE_URL} target="_blank" rel="noreferrer">
@@ -64,7 +64,7 @@ export function EditorGuide() {
           <Stack gap={4}>
             <Heading as="h2" size={2}>So läuft’s</Heading>
             <Flex gap={3} wrap="wrap">
-              {['1  Bereich öffnen', '2  Inhalt & Komposition prüfen', '3  Publish'].map((step) => (
+              {['1  Bereich öffnen', '2  Inhalt prüfen', '3  Publish'].map((step) => (
                 <Card key={step} border padding={4} radius={0} style={{flex: '1 1 210px'}}>
                   <Text size={2} weight="medium">{step}</Text>
                 </Card>

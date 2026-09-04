@@ -55,7 +55,6 @@ type RawService = {
   chapters?: Array<{title?: string; text?: string}>
   casesIntro?: string
   cases?: Array<{project?: string; text?: string}>
-  cta?: {statement?: string; linkLabel?: string; emailSubject?: string}
 }
 
 type RawSiteContent = {
@@ -102,8 +101,7 @@ const siteContentQuery = `{
     headline,
     chapters[]{title, text},
     casesIntro,
-    cases[]{text, "project": project->slug.current},
-    cta{statement, linkLabel, emailSubject}
+    cases[]{text, "project": project->slug.current}
   },
   "studio": *[_id == "studioPage"][0]{
     headline,
@@ -212,11 +210,6 @@ function mapService(service: RawService): Service {
       project: requiredString(item.project, `service.${slug}.cases.${index}.project`),
       text: requiredString(item.text, `service.${slug}.cases.${index}.text`),
     })),
-    cta: {
-      statement: requiredString(service.cta?.statement, `service.${slug}.cta.statement`),
-      linkLabel: requiredString(service.cta?.linkLabel, `service.${slug}.cta.linkLabel`),
-      emailSubject: requiredString(service.cta?.emailSubject, `service.${slug}.cta.emailSubject`),
-    },
   }
 }
 

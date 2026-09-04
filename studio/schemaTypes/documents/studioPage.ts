@@ -1,6 +1,5 @@
 import {BlockContentIcon} from '@sanity/icons/BlockContent'
 import {defineArrayMember, defineField, defineType} from 'sanity'
-import {StudioContentInput} from '../../studioComponents/StudioContentInput'
 
 export const studioPage = defineType({
   name: 'studioPage',
@@ -13,7 +12,6 @@ export const studioPage = defineType({
       name: 'content',
       title: 'Inhalt',
       type: 'array',
-      components: {input: StudioContentInput},
       of: [
         defineArrayMember({type: 'studioRichTextBlock'}),
         defineArrayMember({type: 'studioImageBlock'}),

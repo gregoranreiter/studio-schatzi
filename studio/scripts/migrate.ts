@@ -173,12 +173,6 @@ async function migrate() {
       project: reference(projectId(item.project)),
       text: item.text,
     })),
-    cta: {
-      _type: 'serviceCta',
-      statement: service.ctaText,
-      linkLabel: service.ctaLink,
-      emailSubject: service.ctaSubject,
-    },
     displayOrder: index + 1,
   }))
 

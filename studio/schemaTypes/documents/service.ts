@@ -1,6 +1,5 @@
 import {CaseIcon} from '@sanity/icons/Case'
 import {defineArrayMember, defineField, defineType} from 'sanity'
-import {ServiceCasesInput} from '../../studioComponents/ServiceCasesInput'
 
 export const service = defineType({
   name: 'service',
@@ -24,11 +23,9 @@ export const service = defineType({
       name: 'cases',
       title: 'Projektbeispiele',
       type: 'array',
-      components: {input: ServiceCasesInput},
       of: [defineArrayMember({type: 'serviceCase'})],
       validation: (rule) => rule.required().min(1).unique(),
     }),
-    defineField({name: 'cta', title: 'Kontaktimpuls', type: 'serviceCta', validation: (rule) => rule.required()}),
     defineField({name: 'displayOrder', title: 'Reihenfolge', type: 'number', validation: (rule) => rule.required().integer().min(1)}),
   ],
   preview: {select: {title: 'title', subtitle: 'headline'}},

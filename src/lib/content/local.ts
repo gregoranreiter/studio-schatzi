@@ -66,11 +66,6 @@ export const localSiteContent: SiteContent = {
     chapters: service.chapters,
     casesIntro: service.casesIntro,
     cases: service.cases,
-    cta: {
-      statement: service.ctaText,
-      linkLabel: service.ctaLink,
-      emailSubject: service.ctaSubject,
-    },
   })),
   studio: {
     headline: 'Studio Schatzi ist ein unabhängiges Studio für Gestaltung und Strategie in Linz.',

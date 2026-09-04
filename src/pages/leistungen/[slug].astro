@@ -10,13 +10,12 @@ export async function getStaticPaths() {
 
 interface Props { service: Service }
 const { service }: Props = Astro.props;
-const { projects, contact } = await getSiteContent();
+const { projects } = await getSiteContent();
 const projectBySlug = new Map(projects.map((project) => [project.slug, project]));
 const cases = service.cases.map((item) => ({ ...item, project: projectBySlug.get(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
-const ctaHref = `mailto:${contact.email}?subject=${encodeURIComponent(service.cta.emailSubject)}`;
 ---
 
-<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover.src} bodyClass="service-detail-page" serviceTitle={service.title} showFooterCta={false}>
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover.src} bodyClass="service-detail-page" serviceTitle={service.title}>
   <article class="service-detail">
     <header class="service-detail-hero">
       <div class="service-detail-hero__content">
@@ -46,11 +45,6 @@ const ctaHref = `mailto:${contact.email}?subject=${encodeURIComponent(service.ct
           </a>
         ))}
       </div>
-    </section>
-
-    <section class="service-cta" aria-labelledby="service-cta-title">
-      <h2 id="service-cta-title">{service.cta.statement}</h2>
-      <a class="pill-link service-cta__link" href={ctaHref}>{service.cta.linkLabel}</a>
     </section>
   </article>
 </BaseLayout>

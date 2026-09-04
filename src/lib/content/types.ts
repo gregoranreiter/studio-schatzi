@@ -37,12 +37,6 @@ export type ServiceCase = {
   text: string
 }
 
-export type ServiceCta = {
-  statement: string
-  linkLabel: string
-  emailSubject: string
-}
-
 export type Service = {
   slug: string
   title: string
@@ -50,7 +44,6 @@ export type Service = {
   chapters: ServiceChapter[]
   casesIntro: string
   cases: ServiceCase[]
-  cta: ServiceCta
 }
 
 export type HomePage = {
