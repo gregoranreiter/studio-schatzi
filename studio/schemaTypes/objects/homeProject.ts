@@ -1,6 +1,7 @@
 import {ProjectsIcon} from '@sanity/icons/Projects'
 import {defineField, defineType} from 'sanity'
 import {HomePlacementInput} from '../../studioComponents/HomePlacementInput'
+import {ProjectReferenceSelectInput} from '../../studioComponents/ProjectReferenceSelectInput'
 
 export const homeProject = defineType({
   name: 'homeProject',
@@ -13,6 +14,7 @@ export const homeProject = defineType({
       title: 'Projekt',
       type: 'reference',
       to: [{type: 'project'}],
+      components: {input: ProjectReferenceSelectInput},
       validation: (rule) => rule.required(),
     }),
     defineField({
