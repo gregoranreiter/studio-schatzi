@@ -1,6 +1,6 @@
 # Studio Schatzi
 
-The German portfolio website for Studio Schatzi, an independent design studio in Linz. Built with Astro, TypeScript, and plain CSS. Pages are generated as static HTML. There is no CMS, database, analytics, or contact form backend.
+The German portfolio website for Studio Schatzi, an independent design studio in Linz. Astro generates static HTML from a restrained Sanity content model; the editor is a separate custom Sanity Studio. Both outputs are packaged as Cloudflare Workers with static assets. There is no runtime database, analytics service, or contact-form backend.
 
 ## Local development
 
@@ -14,31 +14,38 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local URL printed by Astro, normally `http://127.0.0.1:4321`. If another site uses that port, Astro chooses the next available port. No environment variables or external accounts are required.
+Open the local URL printed by Astro, normally `http://127.0.0.1:4321`. If another site uses that port, Astro chooses the next available port. Published content is read from the public Sanity dataset; no write token is required. Run `pnpm cms:dev` separately to work on the editor.
 
 If another pnpm version is already installed, use `corepack pnpm` in place of `pnpm`. If Corepack is unavailable, install the pinned pnpm version using the [official pnpm installation instructions](https://pnpm.io/installation).
 
 | Command | Purpose |
 | --- | --- |
 | `pnpm dev` | Run the website with live updates. |
+| `pnpm cms:dev` | Run the Sanity Studio with live updates. |
 | `pnpm check` | Check Astro and TypeScript files. |
 | `pnpm test` | Check header contrast, navigation, and service hover interactions. |
-| `pnpm build` | Check types and generate the complete site in `dist/`. |
+| `pnpm build` | Validate CMS content, check types, generate the site, and write Cloudflare redirects. |
+| `pnpm cms:build` | Type-check and build the production Studio in `studio/dist/`. |
 | `pnpm preview` | Serve the production build locally. Run the build first. |
 
 GitHub Actions runs the same locked install and build for pushes to `main` and pull requests. A build does not publish the site.
 
 ## Editing the website
 
+Day-to-day content is edited and published in Sanity Studio. The complete editorial model and account workflow are documented in [the CMS and hosting handover](docs/cms-hosting-handover.md).
+
 | Location | Content |
 | --- | --- |
-| `src/data/projects.ts` | Five projects, gallery images, scope of work, and related projects. |
-| `src/data/services.ts` | Four services, explanatory text, project examples, and contact links. |
+| `studio/schemaTypes/` | Sanity document and content-block schemas. |
+| `studio/studioComponents/` | Visual four-column, gallery, case, CTA, contact, and logo editors. |
+| `src/lib/content/` | Validated Sanity query, responsive image mapping, and local emergency fallback. |
+| `src/data/projects.ts` | Original one-time migration and disaster-recovery snapshot for projects. |
+| `src/data/services.ts` | Original one-time migration and disaster-recovery snapshot for services. |
 | `src/pages/` | Homepage, project archive and detail pages, service pages, studio, contact, and 404. |
 | `src/layouts/BaseLayout.astro` | Shared navigation, metadata, and page transitions. |
 | `src/components/` | Project cards and footer. |
 | `src/styles/global.css` | Colours, typography, spacing, motion, and responsive layouts. |
-| `public/images/projects/` | Images used on the website. |
+| `public/images/projects/` | Original migration image snapshot; published images are delivered by Sanity's CDN. |
 | `public/logo-studio-schatzi.svg` | Original Studio Schatzi wordmark. |
 | `public/og.png` | Existing social preview image. |
 
@@ -48,9 +55,9 @@ The project archive uses one row per project on the shared four-column grid. The
 
 Project detail introductions use the shared four-column grid with no viewport-based minimum height. The title fills columns 1–3 and starts 1.5–3rem below the fixed header. A 2.5–5rem gap separates it from the summary in columns 2–4. The cover follows with the shared page inset as its top gap. Below the cover, the description occupies columns 2–3 alongside an unstyled service list in column 1. The list uses the shared medium text size and muted grey, with one service per line. At 760px and below, the title and summary fill the content width, and the services and description stack. Cover frames stay unchanged.
 
-The studio headline occupies columns 2–4, while its shared body-text container occupies columns 2–3. Both leave column 1 empty. The introduction has no viewport minimum height: its headline begins 2–3.5rem below the header, followed by a 4–8rem gap before the body text. The three paragraphs flow in one block with 1.2em between paragraphs. At 760px and below, both headline and body use the full content width.
+The studio headline occupies columns 2–4. Its ordered Sanity content array accepts restrained rich-text blocks across columns 2–3 and images either at full width or right-aligned across columns 2–4. The introduction has no viewport minimum height. At 760px and below, headline, text, and images use the full content width.
 
-KOA cover images use the top 987px of the 1241px source export, excluding the white strip. The original JPEG stays unchanged. `coverVisibleHeight` in the project data controls the shared `ProjectCover` component and the service hover preview, so the same crop applies to homepage and archive cards, related projects, project heroes, service cases, and mobile galleries. The existing image frames, hover motion, and alt text are preserved.
+KOA cover images use the top 987px of the 1241px source export, excluding the white strip. The original JPEG stays unchanged. The migration converted the former CSS crop into Sanity image crop metadata, so the image CDN applies it consistently to homepage and archive cards, related projects, project heroes, service cases, and mobile galleries.
 
 For local typography testing, the site uses the installed PP Neue Montreal Medium font through CSS `local()`. It falls back to Helvetica Neue, Helvetica, Arial, and the system sans-serif when unavailable. No font files are bundled or requested over the network. Replace the local source with the licensed webfont when it is ready. The SVG wordmark retains its original outlines.
 
@@ -76,7 +83,7 @@ Hovering also shows a 4:3 preview of the projects in that service's `cases` list
 
 At 760px and below, or on touch-first devices, services become stacked sections with permanently visible headings and descriptions. Each section has a native horizontal gallery of its referenced projects with 4:3 images and the next card peeking in to suggest swiping. Galleries do not rotate automatically. The heading opens the service; each image and caption opens its project. Galleries work without JavaScript, retain keyboard access, and load images lazily. Desktop hover previews are disabled in this layout, including on narrow windows with a mouse.
 
-Each service detail page uses its overview hover sentence as the H1. Both sentences read the same `service.headline` field and use `.service-headline` for identical typography, hyphenation, width, left page inset, and top offset. The hero follows its content height, and the introductory prose block is omitted. Chapters use content-based heights with compact vertical padding and top-aligned text columns. Case links use the archive layout: a 16:9 cover across columns 1–3 with the project name at the top and muted case copy at the bottom of column 4. The header replaces the standard page group with a `Leistungen → [service]` breadcrumb. The arrow has the normal menu-item gap on both sides, `Leistungen` links back to the overview, and the current service carries the active-menu underline. During client-side navigation from the overview, `Leistungen` and its underline begin moving left on the outgoing page while `Projekte` and `Studio` wipe toward the left until their visible width reaches zero. As soon as the destination page is swapped in, the underline travels right to the current service while the page wipe reveals the new page. The return trip mirrors this sequence: the underline first returns to `Leistungen`, then the overview starts moving `Leistungen` back into the three-item menu as the other links reveal toward the right from zero visible width immediately when the page is swapped in. These menu wipes use clipping rather than opacity. Direct loads and reduced motion stay static. Services pages reserve the scrollbar gutter so navigation to a scrollable detail page cannot change the headline's line breaks. Mobile overview descriptions remain in the stacked layout.
+Each service detail page uses its overview hover sentence as the H1. Both sentences read the same `service.headline` field and use `.service-headline` for identical typography, hyphenation, width, left page inset, and top offset. The hero follows its content height, and the introductory prose block is omitted. Chapters use content-based heights with compact vertical padding and top-aligned text columns. Case links use the archive layout: a 16:9 cover across columns 1–3 with the project name at the top and muted case copy at the bottom of column 4. A service-specific yellow CTA follows the cases; its statement, link text, and email subject are edited together in Sanity, and it replaces the generic footer CTA on these pages. The header replaces the standard page group with a `Leistungen → [service]` breadcrumb. The arrow has the normal menu-item gap on both sides, `Leistungen` links back to the overview, and the current service carries the active-menu underline. During client-side navigation from the overview, `Leistungen` and its underline begin moving left on the outgoing page while `Projekte` and `Studio` wipe toward the left until their visible width reaches zero. As soon as the destination page is swapped in, the underline travels right to the current service while the page wipe reveals the new page. The return trip mirrors this sequence: the underline first returns to `Leistungen`, then the overview starts moving `Leistungen` back into the three-item menu as the other links reveal toward the right from zero visible width immediately when the page is swapped in. These menu wipes use clipping rather than opacity. Direct loads and reduced motion stay static. Services pages reserve the scrollbar gutter so navigation to a scrollable detail page cannot change the headline's line breaks. Mobile overview descriptions remain in the stacked layout.
 
 Page navigation uses one persistent yellow overlay, controlled by `src/scripts/page-swipe.ts`. It covers from a random edge in 560ms while the next page loads, holds for 90ms, and exits through the opposite edge in 680ms. The controller skips the browser's native snapshot transition and waits for its render pause to end before revealing the new page. This prevents a captured mid-swipe frame from appearing as a second animation. New navigation cancels the previous animation and ignores its late callbacks. Reloads and cached page restoration reset the overlay offscreen. Reduced motion skips both effects, and script replacement leaves only one set of listeners.
 
@@ -88,21 +95,15 @@ The services overview at `/leistungen` has no footer, on desktop or mobile. Serv
 
 The footer uses one full-width yellow "Kontakt aufnehmen" pill linking to `/kontakt`; it has no accompanying headline. The pill shares its shape, padding, typography, and hover style with the homepage archive button through `.pill-link`. The legal label and copyright align to the same grid at the bottom. The legal label remains unlinked until approved text or a destination is supplied.
 
-The contact page has no visible heading; its accessible heading remains available to screen readers. The existing email, phone, and street address occupy columns 2–3, leaving column 1 empty and using the full content width on small screens. Email and phone retain their `mailto:` and `tel:` links. It has no form or external embed. Its compact footer retains the logos and legal row but omits the contact CTA to avoid linking back to the same page.
+The contact page has no visible heading; its accessible heading remains available to screen readers. Email, phone, street address, and an optional ordered social-link array occupy columns 2–3, leaving column 1 empty and using the full content width on small screens. Email and phone retain their `mailto:` and `tel:` links. It has no form or external embed. Its compact footer retains the logos and legal row but omits the contact CTA to avoid linking back to the same page.
 
 Project and service slugs become URLs. Keep them stable once the site is published, or add redirects when changing them. Update the `related` and service `cases` references when renaming a project slug.
 
 ## Deployment
 
-The existing configuration produces a static site. The canonical domain is `https://www.studioschatzi.at`, configured in `astro.config.mjs`. Confirm that domain before a public launch.
+The canonical domain is `https://www.studioschatzi.at`, configured in `astro.config.mjs`. `wrangler.jsonc` deploys the static site with directory indexes and `404.html`; `studio/wrangler.jsonc` deploys the editor with an SPA fallback. Security headers live in `public/_headers`, and CMS-managed redirects are generated into `dist/_redirects`.
 
-- Repository root is the project root. There is no nested `site/` directory.
-- Install command: `pnpm install --frozen-lockfile`.
-- Build command: `pnpm build`.
-- Publish directory: `dist/`.
-- Serve directory indexes for nested routes and use `404.html` for unknown pages. Do not use a single-page-app fallback to the homepage.
-
-Only deploy `dist/`, never the source folder. See Astro's [deployment guide](https://docs.astro.build/en/guides/deploy/) for host-specific settings.
+Use separate Cloudflare Workers for the site and Studio. The domain currently remains at World4You and must not be moved until its mail DNS records are preserved. Follow [the CMS and hosting handover](docs/cms-hosting-handover.md) for account authorization, Workers Builds, deploy hooks, Access, domains, DNS, and rollback.
 
 ## Source materials and launch work
 

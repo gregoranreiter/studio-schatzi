@@ -1,14 +1,15 @@
 ---
-import type { Project } from '../data/projects';
+import type { Project } from '../lib/content';
 
 interface Props {
   project: Project;
   class?: string;
   loading?: 'eager' | 'lazy';
   decoding?: 'sync' | 'async' | 'auto';
+  sizes?: string;
 }
 
-const { project, class: className, loading, decoding } = Astro.props;
+const { project, class: className, loading, decoding, sizes = '100vw' } = Astro.props;
 ---
 
 <div
@@ -20,5 +21,14 @@ const { project, class: className, loading, decoding } = Astro.props;
     '--project-cover-visible': project.coverVisibleHeight,
   }}
 >
-  <img src={project.cover} alt={project.coverAlt} loading={loading} decoding={decoding} />
+  <img
+    src={project.cover.src}
+    srcset={project.cover.srcset}
+    {sizes}
+    width={project.cover.width}
+    height={project.cover.height}
+    alt={project.cover.alt}
+    loading={loading}
+    decoding={decoding}
+  />
 </div>

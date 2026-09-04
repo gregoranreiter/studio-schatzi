@@ -1,0 +1,29 @@
+{
+  "name": "studio-schatzi-cms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev --host 127.0.0.1",
+    "build": "sanity build",
+    "bootstrap": "sanity exec scripts/migrate.ts --with-user-token -- --confirm-overwrite",
+    "deploy": "sanity build && wrangler deploy",
+    "schema:extract": "sanity schema extract"
+  },
+  "dependencies": {
+    "@sanity/icons": "^5.2.1",
+    "@sanity/image-url": "^2.1.1",
+    "@sanity/ui": "^4.0.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sanity": "^6.12.0",
+    "styled-components": "^6.5.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "typescript": "6.0.3",
+    "wrangler": "^4.129.0"
+  }
+}

@@ -1,2 +1,11 @@
+packages:
+  - studio
+
 allowBuilds:
   esbuild: true
+  workerd: true
+
+minimumReleaseAgeExclude:
+  - '@types/react-dom@19.2.7'
+  - miniflare@5.20260903.0-alpha
+  - wrangler@4.129.0

@@ -1,19 +1,22 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectCover from '../../components/ProjectCover.astro';
-import { projectBySlug, type Project } from '../../data/projects';
-import { services, type Service } from '../../data/services';
+import { getSiteContent, type Project, type Service } from '../../lib/content';
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const { services } = await getSiteContent();
   return services.map((service) => ({ params: { slug: service.slug }, props: { service } }));
 }
 
 interface Props { service: Service }
 const { service }: Props = Astro.props;
-const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
+const { projects, contact } = await getSiteContent();
+const projectBySlug = new Map(projects.map((project) => [project.slug, project]));
+const cases = service.cases.map((item) => ({ ...item, project: projectBySlug.get(item.project) })).filter((item) => item.project) as Array<{ project: Project; text: string }>;
+const ctaHref = `mailto:${contact.email}?subject=${encodeURIComponent(service.cta.emailSubject)}`;
 ---
 
-<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover} bodyClass="service-detail-page" serviceTitle={service.title}>
+<BaseLayout title={`${service.title} — Studio Schatzi`} description={service.headline} image={cases[0]?.project.cover.src} bodyClass="service-detail-page" serviceTitle={service.title} showFooterCta={false}>
   <article class="service-detail">
     <header class="service-detail-hero">
       <div class="service-detail-hero__content">
@@ -43,6 +46,11 @@ const cases = service.cases.map((item) => ({ ...item, project: projectBySlug(ite
           </a>
         ))}
       </div>
+    </section>
+
+    <section class="service-cta" aria-labelledby="service-cta-title">
+      <h2 id="service-cta-title">{service.cta.statement}</h2>
+      <a class="pill-link service-cta__link" href={ctaHref}>{service.cta.linkLabel}</a>
     </section>
   </article>
 </BaseLayout>

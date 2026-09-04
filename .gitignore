@@ -4,6 +4,8 @@ dist/
 .astro/
 .pnpm-store/
 .wrangler/
+.sanity/
+.playwright-cli/
 coverage/
 
 # Local configuration and credentials

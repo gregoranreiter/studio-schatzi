@@ -1,19 +1,20 @@
 ---
-import type { Project } from '../data/projects';
-import { splitProjectScope } from '../lib/project-scope';
+import type { Project } from '../lib/content';
 import ProjectCover from './ProjectCover.astro';
 
 interface Props { project: Project; size?: 'large' | 'small'; class?: string; stackScope?: boolean }
 const { project, size = 'large', class: className, stackScope = false } = Astro.props;
-const scopeLines = stackScope ? splitProjectScope(project.scope) : [];
+const coverSizes = size === 'small'
+  ? '(max-width: 760px) 100vw, 50vw'
+  : '(max-width: 760px) 100vw, 75vw';
 ---
 
 <a class:list={['project-card', `project-card--${size}`, className]} href={`/projekte/${project.slug}`}>
-  <ProjectCover project={project} class="project-card__image" loading="lazy" />
+  <ProjectCover project={project} class="project-card__image" loading="lazy" sizes={coverSizes} />
   <div class="project-card__caption">
     <h2>{project.title}</h2>
     <p>{stackScope
-      ? scopeLines.map((service, index) => <>{index > 0 && <br />}{service}</>)
-      : project.scope}</p>
+      ? project.scope.map((service, index) => <>{index > 0 && <br />}{service}</>)
+      : project.scope.join(', ')}</p>
   </div>
 </a>

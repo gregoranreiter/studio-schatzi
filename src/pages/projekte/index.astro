@@ -1,7 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
-import { projects } from '../../data/projects';
+import { getSiteContent } from '../../lib/content';
+
+const { projects } = await getSiteContent();
 ---
 
 <BaseLayout title="Projekte — Studio Schatzi" description="Ausgewählte Marken, Kampagnen und digitale Auftritte von Studio Schatzi.">

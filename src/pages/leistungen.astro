@@ -1,9 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCover from '../components/ProjectCover.astro';
-import { projects } from '../data/projects';
-import { services } from '../data/services';
+import { getSiteContent } from '../lib/content';
 
+const { projects, services } = await getSiteContent();
 const referencedSlugs = new Set(services.flatMap((service) => service.cases.map((item) => item.project)));
 const previewProjects = projects.filter((project) => referencedSlugs.has(project.slug));
 ---
@@ -49,7 +49,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
     {previewProjects.map((project) => (
       <img
         data-preview-cover={project.slug}
-        data-src={project.cover}
+        data-src={project.cover.src}
         alt=""
         decoding="async"
         style={{

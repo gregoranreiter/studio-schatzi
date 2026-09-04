@@ -1,5 +1,7 @@
 ---
-import { clientLogos as logos } from '../data/client-logos';
+import { getSiteContent } from '../lib/content';
+
+const { clientLogos: logos } = await getSiteContent();
 ---
 
 <client-logo-marquee class="client-logos">
@@ -12,7 +14,7 @@ import { clientLogos as logos } from '../data/client-logos';
           {[0, 1].map(() => (
             <span class="client-logos__set">
               {logos.map((logo) => (
-                <span class="client-logos__item" style={`--logo-width-scale: ${logo.widthScale ?? 1}; --logo-ratio: ${logo.width / logo.height}`}>
+                <span class="client-logos__item" style={`--logo-width-scale: ${logo.widthScale ?? 1}`}>
                   <img src={logo.src} alt="" width={logo.width} height={logo.height} loading="eager" decoding="async" />
                 </span>
               ))}

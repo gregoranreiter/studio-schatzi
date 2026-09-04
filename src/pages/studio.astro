@@ -1,16 +1,33 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { PortableText } from 'astro-portabletext';
+import { getSiteContent } from '../lib/content';
+
+const { studio } = await getSiteContent();
 ---
 
 <BaseLayout title="Studio — Studio Schatzi" description="Studio Schatzi ist ein unabhängiges Studio für Gestaltung und Strategie in Linz.">
   <section class="page-intro studio-intro">
-    <h1>Studio Schatzi ist ein unabhängiges Studio für Gestaltung und Strategie in Linz.</h1>
+    <h1>{studio.headline}</h1>
   </section>
-  <section class="studio-text">
-    <div class="studio-text__content">
-      <p>Raphi arbeitet mit Unternehmen, die etwas Eigenes vorhaben und dafür einen klaren Ausdruck suchen. Am Anfang steht das genaue Hinschauen: Was ist wirklich besonders, was muss sich verändern und was darf bleiben?</p>
-      <p>Aus dieser Klarheit entsteht Gestaltung, die nicht aufgesetzt wirkt. Eine Marke kann ruhig oder lebendig sein, streng oder spielerisch. Wichtig ist, dass sie eine Haltung trägt und im Alltag funktioniert.</p>
-      <p>Studio Schatzi begleitet Projekte von der Positionierung über das visuelle System bis zu Kampagne und Webauftritt. Umfang und Team richten sich nach der Aufgabe. Der Austausch bleibt dabei direkt, konzentriert und persönlich.</p>
-    </div>
+  <section class="studio-content" aria-label="Über Studio Schatzi">
+    {studio.content.map((block) => block._type === 'studioRichTextBlock' ? (
+      <div class="studio-content-block studio-content-block--text">
+        <PortableText value={block.body} />
+      </div>
+    ) : (
+      <figure class:list={['studio-content-block', 'studio-content-block--image', `studio-content-block--${block.layout}`]}>
+        <img
+          src={block.image.src}
+          srcset={block.image.srcset}
+          sizes={block.layout === 'full' ? '100vw' : '(max-width: 760px) 100vw, 75vw'}
+          width={block.image.width}
+          height={block.image.height}
+          alt={block.image.alt}
+          loading="lazy"
+          decoding="async"
+        />
+      </figure>
+    ))}
   </section>
 </BaseLayout>
