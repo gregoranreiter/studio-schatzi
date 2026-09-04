@@ -20,7 +20,7 @@ The domain still uses World4You nameservers and web hosting. Moving it to Cloudf
 - Confirm that every selected client image may appear publicly. Review the provisional Donauwalther case study.
 - Confirm the displayed email, phone number, studio description, and canonical domain.
 - Supply and approve the legal notice and privacy text, then add their pages and navigation links. They are not present in the supplied site. The footer's “Imprint & Privacy” label is currently plain text, awaiting an approved destination.
-- Authorize Wrangler against the dedicated **Fragrant Buffer** Cloudflare account, protect the two Workers there, connect Workers Builds, and test the Sanity deploy hook. Do not use the BauConsult account.
+- Authorize Wrangler against the dedicated **Studio Schatzi** Cloudflare account, protect the two Workers there, connect Workers Builds, and test the Sanity deploy hook. Do not use the BauConsult account.
 - Inventory all World4You DNS records before changing nameservers; preserve MX, mail host, SPF, DKIM, DMARC, and verification records.
 - Connect `www.studioschatzi.at` to the site Worker, redirect the apex to `www`, and connect `cms.studioschatzi.at` to the CMS Worker.
 - After the domain is confirmed, add the production sitemap and robots policy.

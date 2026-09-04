@@ -11,13 +11,13 @@ Status date: 4 September 2026
 - The Astro site reads published Sanity content at build time and fails a production build when required content or references are invalid.
 - Two static Cloudflare Worker packages are configured: `studio-schatzi-site` and `studio-schatzi-cms`.
 - The site and Studio both pass Wrangler dry-run packaging.
-- Both packages have been deployed for review to the dedicated Cloudflare account **Fragrant Buffer**, which has been claimed for Studio Schatzi:
+- Both packages have been deployed for review to the dedicated Cloudflare account **Studio Schatzi**, originally claimed from a temporary account:
   - Site: `https://studio-schatzi-site.fragrant-buffer.workers.dev`
   - CMS: `https://studio-schatzi-cms.fragrant-buffer.workers.dev`
 - The CMS preview origin is registered with Sanity CORS using credential support.
 - The former Vercel password middleware has been removed. Prelaunch access belongs at the Cloudflare edge, not in repository code.
 
-Claiming preserved the Workers but did not authenticate Wrangler for later deployments. Future deployments require Wrangler authorization into **Fragrant Buffer** on the development computer. The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
+Claiming preserved the Workers but did not authenticate Wrangler for later deployments. Future deployments require Wrangler authorization into **Studio Schatzi** on the development computer. The BauConsult Cloudflare account is explicitly out of scope and must not receive Studio Schatzi Workers, settings, policies, hooks, or domains.
 
 ## Architecture
 
@@ -82,7 +82,7 @@ The public Sanity project ID and dataset are committed configuration because bot
 
 ## Cloudflare account completion
 
-The `fragrant-buffer.workers.dev` URLs are the current review environments in Studio Schatzi's dedicated, claimed Cloudflare account. They can remain the only public URLs until a domain cutover is wanted. Do not deploy any part of this project into the BauConsult Cloudflare account.
+The account is named **Studio Schatzi**. Its unchanged Workers subdomain is `fragrant-buffer.workers.dev`; this technical subdomain is independent of the dashboard account name. These URLs can remain the only public review environments until a domain cutover is wanted. Do not deploy any part of this project into the BauConsult Cloudflare account.
 
 Complete this when working on the development computer:
 
@@ -92,7 +92,7 @@ pnpm exec wrangler login
 pnpm exec wrangler whoami
 ```
 
-The login must show and select the dedicated **Fragrant Buffer** account. If Wrangler lists multiple accounts, confirm its account ID before deploying and add that public account ID to both Wrangler configurations. Never select the BauConsult account.
+The login must show and select the dedicated **Studio Schatzi** account. If Wrangler lists multiple accounts, confirm its account ID before deploying and add that public account ID to both Wrangler configurations. Never select the BauConsult account.
 
 ### Authenticated deployment
 
@@ -163,7 +163,7 @@ No `cms` record or CAA record was returned. This is a point-in-time inventory, n
 
 Cut over in this order:
 
-1. Add `studioschatzi.at` as a zone in the dedicated Studio Schatzi Cloudflare account (**Fragrant Buffer**).
+1. Add `studioschatzi.at` as a zone in the dedicated **Studio Schatzi** Cloudflare account.
 2. Compare Cloudflare's DNS scan with the World4You control panel. Recreate every mail, SPF, DKIM, DMARC, verification, and other non-web record exactly. Keep mail-related hosts DNS-only.
 3. Deploy and verify both Workers on their `workers.dev` URLs while the old site remains untouched.
 4. Change the registrar nameservers only after the DNS inventory is complete. This is a deliberate owner-approved action because missing records can interrupt email.
