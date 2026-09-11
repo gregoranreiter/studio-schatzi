@@ -39,7 +39,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
       </article>
     ))}
   </section>
-  <img
+  <img crossorigin="anonymous"
     class="services-idle-illustration"
     src="/images/services/gretzl-character-black.png"
     alt=""
@@ -47,7 +47,7 @@ const previewProjects = projects.filter((project) => referencedSlugs.has(project
   />
   <div class="service-preview" data-service-preview aria-hidden="true" hidden>
     {previewProjects.map((project) => (
-      <img
+      <img crossorigin="anonymous"
         data-preview-cover={project.slug}
         data-src={project.cover.src}
         alt=""

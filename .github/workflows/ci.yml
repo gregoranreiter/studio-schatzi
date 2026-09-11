@@ -35,3 +35,5 @@ jobs:
         run: pnpm build
       - name: Check header and service interactions
         run: pnpm test
+      - name: Compare preview rendering with the public pages
+        run: pnpm test:preview

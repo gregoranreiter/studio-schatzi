@@ -1426,3 +1426,11 @@ html[data-mobile-menu-open] body { overflow: hidden; }
   .client-logos__group + .client-logos__group,
   .client-logos__set + .client-logos__set { display: none; }
 }
+
+/* A preview is a scrollable rendering of the editor's document.
+   Draft swaps restore scroll before paint; never animate or anchor that restore. */
+html[data-cms-preview] { scroll-behavior: auto; overflow-anchor: none; }
+html[data-cms-preview] a,
+html[data-cms-preview] button { cursor: default; }
+html[data-cms-preview]::view-transition-old(root),
+html[data-cms-preview]::view-transition-new(root) { animation: none; }

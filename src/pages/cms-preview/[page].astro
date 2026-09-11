@@ -1,0 +1,34 @@
+---
+import HomePageView from '../../components/HomePageView.astro';
+import ProjectPageView from '../../components/ProjectPageView.astro';
+import {emptyProject, type PreviewContent} from '../../lib/preview/content';
+import {readPreviewPayload} from '../../lib/preview/request';
+import {studioOrigins} from '../../lib/preview/protocol';
+export const prerender = false;
+
+// Only these two endpoints render on demand. Published pages stay prerendered.
+const page = Astro.params.page;
+if (page !== 'home' && page !== 'project') return new Response('Not found', {status: 404});
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+Astro.response.headers.set('X-Content-Type-Options', 'nosniff');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+// Cloudflare asset _headers do not apply to server-rendered responses.
+const frameOrigins = studioOrigins.filter((origin) => import.meta.env.DEV || origin.startsWith('https://'));
+Astro.response.headers.set('Content-Security-Policy', `frame-ancestors ${frameOrigins.join(' ')}; object-src 'none'; base-uri 'self'; form-action 'none'`);
+let content: PreviewContent = {home: {headline: '', projects: []}, projects: []};
+let slug = '';
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== Astro.url.origin) return new Response('Forbidden', {status: 403, headers: {'Cache-Control': 'no-store'}});
+  try {
+    ({content, slug} = await readPreviewPayload(Astro.request));
+  } catch {
+    return new Response('Invalid preview request', {status: 400, headers: {'Cache-Control': 'no-store'}});
+  }
+} else if (Astro.request.method !== 'GET') {
+  return new Response('Method not allowed', {status: 405, headers: {Allow: 'GET, POST'}});
+}
+const project = content.projects.find((item) => item.slug === slug) || emptyProject;
+const related = project.related.flatMap((slug) => content.projects.filter((item) => item.slug === slug));
+---
+{page === 'home' ? <HomePageView home={content.home} preview /> : <ProjectPageView project={project} related={related} preview />}

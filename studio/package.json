@@ -7,7 +7,7 @@
     "dev": "sanity dev --host 127.0.0.1",
     "build": "sanity build",
     "bootstrap": "sanity exec scripts/migrate.ts --with-user-token -- --confirm-overwrite",
-    "deploy": "sanity build && wrangler deploy",
+    "deploy": "sanity build && wrangler deploy --config wrangler.jsonc",
     "schema:extract": "sanity schema extract"
   },
   "dependencies": {

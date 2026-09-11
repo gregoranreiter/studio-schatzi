@@ -14,6 +14,8 @@ interface Props {
   showFooterCta?: boolean;
   bodyClass?: string;
   serviceTitle?: string;
+  preview?: boolean;
+  navigationPath?: string;
 }
 
 const {
@@ -24,9 +26,11 @@ const {
   showFooterCta = true,
   bodyClass,
   serviceTitle,
+  preview = false,
+  navigationPath,
 } = Astro.props;
 
-const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+const pathname = navigationPath || Astro.url.pathname.replace(/\/$/, '') || '/';
 const canonical = new URL(pathname, Astro.site);
 const socialImage = new URL(image, Astro.site);
 const navigationLinks = [
@@ -39,11 +43,12 @@ const isServiceDetail = bodyClass?.split(/\s+/).includes('service-detail-page') 
 ---
 
 <!doctype html>
-<html lang="de">
+<html lang="de" data-cms-preview={preview || undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
+    {preview && <meta name="robots" content="noindex, nofollow" />}
     <link rel="preload" href="/fonts/PPNeueMontreal-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/logo-studio-schatzi.svg" />
@@ -107,12 +112,14 @@ const isServiceDetail = bodyClass?.split(/\s+/).includes('service-detail-page') 
     </main>
     {showFooter && <SiteFooter showCta={showFooterCta} />}
     <script>
+      const preview = document.documentElement.hasAttribute('data-cms-preview');
+      if (preview) import('../scripts/studio-preview');
       import '../scripts/header-contrast';
       import '../scripts/nav-indicator';
       import { initializePageSwipe } from '../scripts/page-swipe';
       import { initializeMobileMenu } from '../scripts/mobile-menu';
 
-      const cleanupSwipe = initializePageSwipe();
+      const cleanupSwipe = preview ? () => {} : initializePageSwipe();
       let cleanupMenu = initializeMobileMenu();
       const mountMenu = () => {
         cleanupMenu();

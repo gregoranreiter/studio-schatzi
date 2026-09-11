@@ -15,7 +15,7 @@ const { clientLogos: logos } = await getSiteContent();
             <span class="client-logos__set">
               {logos.map((logo) => (
                 <span class="client-logos__item" style={`--logo-width-scale: ${logo.widthScale ?? 1}`}>
-                  <img src={logo.src} alt="" width={logo.width} height={logo.height} loading="eager" decoding="async" />
+                  <img crossorigin="anonymous" src={logo.src} alt="" width={logo.width} height={logo.height} loading="eager" decoding="async" />
                 </span>
               ))}
             </span>

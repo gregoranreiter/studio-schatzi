@@ -23,7 +23,7 @@ function imagePixels(image: HTMLImageElement): ImageData | null {
       pixels = context.getImageData(0, 0, canvas.width, canvas.height);
     }
   } catch {
-    // A future cross-origin image may forbid canvas reads. Retain the previous tone.
+    // An image host without CORS support may forbid canvas reads. Retain the previous tone.
   }
   imageCache.set(image, { source, pixels });
   return pixels;

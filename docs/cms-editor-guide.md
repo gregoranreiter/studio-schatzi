@@ -13,6 +13,14 @@ Das CMS ist bewusst reduziert. Nicht, weil die Website basic ist, sondern weil h
 
 Alles, was noch nicht veröffentlicht ist, bleibt als Entwurf in Sanity. Mit **Publish** wird die Änderung freigegeben und automatisch ein neuer Website-Build gestartet. Die Website ist normalerweise nach wenigen Minuten aktuell. Reines Arbeiten am Entwurf löst keinen Build aus.
 
+## Preview für Startseite und Projekte
+
+Bei ausreichend Platz stehen sämtliche Eingabefelder links und die Website-Preview rechts. Die Trennlinie lässt sich ziehen; die Aufteilung wird im Browser gespeichert und gilt für Startseite und Projekte. Doppelklick setzt beide Spalten auf gleiche Breite zurück. Per Tastatur: Trennlinie mit Tab fokussieren, mit den Pfeiltasten verschieben (Shift für größere Schritte), mit Enter zurücksetzen. Änderungen an Texten, Bildern, Reihenfolge und Platzierung erscheinen dort während der Bearbeitung. Die Preview zeigt immer die gerade bearbeitete Seite und behält beim Aktualisieren ihre Scrollposition. Links und Menü sind nicht bedienbar; Scrollen bleibt möglich.
+
+**Auto** ist die normale Preview: Sie füllt die Spalte ohne Rahmen und folgt beim Verschieben der Trennlinie direkt deren Breite. **Mobil** (390 px), **Tablet** (768 px) und **Desktop** (1280 px) simulieren feste Website-Breiten. Ein Rahmen auf neutralem Hintergrund kennzeichnet diesen Modus; darüber stehen Gerät, Breite und Darstellungsmaßstab. Die CMS-Trennlinie verändert hier nur Platz und Maßstab, nicht die simulierte Breite. Die Höhe bleibt flexibel, die Seite scrollbar. Die Bedienelemente verwenden Sanity-Icons; ihre Bezeichnung erscheint beim Darüberfahren oder Tastaturfokus. Mit **Vergrößern** lässt sich die Preview über den Editor legen. **Neu laden** lädt die Preview erneut.
+
+Auf kleinen CMS-Bildschirmen wird die Preview vollständig ausgeblendet. Die Eingabefelder bleiben verfügbar.
+
 ## Was wo gepflegt wird
 
 | Bereich | Was du hier steuerst |
@@ -33,7 +41,7 @@ Jeder Eintrag verbindet ein Projekt mit einer von drei klaren Platzierungen:
 - **Links, drei Spalten** nutzt die ersten drei Spalten.
 - **Rechts, drei Spalten** nutzt die letzten drei Spalten.
 
-Die Reihenfolge lässt sich direkt verschieben. Die gelbe Darstellung zeigt die echte Komposition – deshalb braucht es für diese Entscheidung keine zusätzliche Vorschau.
+Die Reihenfolge lässt sich direkt verschieben. Rechts zeigt die Preview die gewählte Komposition im Website-Raster.
 
 Ein Projekt muss zuerst angelegt und veröffentlicht sein, bevor es verlässlich auf der veröffentlichten Website erscheinen kann. Maximal sechs Projekte halten die Startseite fokussiert.
 
@@ -49,7 +57,7 @@ Für die Galerie gibt es drei Formate:
 - **Halb** teilt sich eine Zeile mit einem zweiten Bild.
 - **Hochformat** läuft im schmaleren Portrait-Rhythmus.
 
-Die Galerie-Vorschau zeigt Reihenfolge und Rhythmus ziemlich genau. Bilder können direkt verschoben werden.
+Die Website-Preview zeigt die Galerie in der gewählten Reihenfolge und mit den gewählten Formaten. Bilder können in der Liste direkt verschoben werden.
 
 Unter **Weiter im Archiv** werden genau zwei Projekte ausgewählt. Ein neues Projekt erscheint nicht automatisch auf der Startseite oder bei einer Leistung. Es wird nur dort sichtbar, wo es bewusst ausgewählt oder verknüpft wurde.
 

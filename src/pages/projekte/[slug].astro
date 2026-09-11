@@ -1,7 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import ProjectCard from '../../components/ProjectCard.astro';
-import ProjectCover from '../../components/ProjectCover.astro';
+import ProjectPageView from '../../components/ProjectPageView.astro';
 import { getSiteContent, type Project } from '../../lib/content';
 
 export async function getStaticPaths() {
@@ -16,40 +14,4 @@ const projectBySlug = new Map(projects.map((item) => [item.slug, item]));
 const related = project.related.map((slug) => projectBySlug.get(slug)).filter(Boolean) as Project[];
 ---
 
-<BaseLayout title={`${project.title} — Studio Schatzi`} description={project.summary} image={project.cover.src}>
-  <article class="project-page">
-    <header class="project-hero">
-      <h1>{project.title}</h1>
-      <p>{project.summary}</p>
-    </header>
-    <ProjectCover project={project} class="project-hero-image" />
-    <section class="project-description">
-      <p class="project-description__copy">{project.description}</p>
-      <ul class="project-services" role="list" aria-label="Leistungen">
-        {project.scope.map((service) => <li>{service}</li>)}
-      </ul>
-    </section>
-    <section class="project-gallery">
-      {project.gallery.map((image) => (
-        <figure class:list={['gallery-item', image.format && `gallery-item--${image.format}`]}>
-          <img
-            src={image.src}
-            srcset={image.srcset}
-            sizes={image.format === 'wide' ? '100vw' : '(max-width: 760px) 100vw, 50vw'}
-            width={image.width}
-            height={image.height}
-            alt={image.alt}
-            loading="lazy"
-            decoding="async"
-          />
-        </figure>
-      ))}
-    </section>
-  </article>
-  <section class="related-projects">
-    <h2>Weiter im Archiv</h2>
-    <div class="project-pair">
-      {related.map((item) => <ProjectCard project={item} size="small" />)}
-    </div>
-  </section>
-</BaseLayout>
+<ProjectPageView project={project} related={related} />

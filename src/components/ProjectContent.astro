@@ -1,0 +1,30 @@
+---
+import ProjectCard from './ProjectCard.astro';
+import ProjectCover from './ProjectCover.astro';
+import ProjectGalleryImage from './ProjectGalleryImage.astro';
+import type {Project} from '../lib/content/types';
+interface Props {project: Project; related: Project[]}
+const {project, related} = Astro.props;
+---
+<article class="project-page">
+    <header class="project-hero">
+      <h1>{project.title}</h1>
+      <p>{project.summary}</p>
+    </header>
+    <ProjectCover project={project} class="project-hero-image" />
+    <section class="project-description">
+      <p class="project-description__copy">{project.description}</p>
+      <ul class="project-services" role="list" aria-label="Leistungen">
+        {project.scope.map((service) => <li>{service}</li>)}
+      </ul>
+    </section>
+    <section class="project-gallery">
+      {project.gallery.map((image) => <ProjectGalleryImage image={image} />)}
+    </section>
+  </article>
+  <section class="related-projects">
+    <h2>Weiter im Archiv</h2>
+    <div class="project-pair">
+      {related.map((item) => <ProjectCard project={item} size="small" />)}
+    </div>
+  </section>

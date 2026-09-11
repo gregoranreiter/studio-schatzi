@@ -17,7 +17,7 @@ const { studio } = await getSiteContent();
       </div>
     ) : (
       <figure class:list={['studio-content-block', 'studio-content-block--image', `studio-content-block--${block.layout}`]}>
-        <img
+        <img crossorigin="anonymous"
           src={block.image.src}
           srcset={block.image.srcset}
           sizes={block.layout === 'full' ? '100vw' : '(max-width: 760px) 100vw, 75vw'}

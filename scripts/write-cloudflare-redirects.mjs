@@ -2,7 +2,7 @@ import {createClient} from '@sanity/client'
 import {writeFile} from 'node:fs/promises'
 import {resolve} from 'node:path'
 
-const outputPath = resolve(process.cwd(), 'dist', '_redirects')
+const outputPath = resolve(process.cwd(), 'dist', 'client', '_redirects')
 
 if (process.env.CONTENT_SOURCE === 'local') {
   await writeFile(outputPath, '# No redirects in the local migration snapshot.\n', 'utf8')

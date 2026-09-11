@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HomeContent from './HomeContent.astro';
+import type {HomePage} from '../lib/content/types';
+interface Props {home: HomePage; preview?: boolean}
+const {home, preview = false} = Astro.props;
+---
+<BaseLayout bodyClass="home-page" preview={preview} navigationPath="/">
+  <HomeContent home={home} />
+</BaseLayout>

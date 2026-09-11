@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectContent from './ProjectContent.astro';
+import type {Project} from '../lib/content/types';
+interface Props {project: Project; related: Project[]; preview?: boolean}
+const {project, related, preview = false} = Astro.props;
+---
+<BaseLayout title={`${project.title} — Studio Schatzi`} description={project.summary} image={project.cover.src} preview={preview} navigationPath={`/projekte/${project.slug}`}>
+  <ProjectContent project={project} related={related} />
+</BaseLayout>

@@ -3,6 +3,7 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {schemaTypes} from './schemaTypes'
 import {singletonActions, singletonTemplates, structure} from './structure'
+import {WebsitePreviewLayout} from './studioComponents/WebsitePreviewLayout'
 
 // A Sanity project ID is public configuration: it is embedded in every Studio
 // build and in image CDN URLs. Environment variables remain available for
@@ -22,5 +23,6 @@ export default defineConfig({
   },
   document: {
     actions: singletonActions,
+    components: {unstable_layout: WebsitePreviewLayout},
   },
 })

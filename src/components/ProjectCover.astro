@@ -21,7 +21,7 @@ const { project, class: className, loading, decoding, sizes = '100vw' } = Astro.
     '--project-cover-visible': project.coverVisibleHeight,
   }}
 >
-  <img
+  <img crossorigin="anonymous"
     src={project.cover.src}
     srcset={project.cover.srcset}
     {sizes}

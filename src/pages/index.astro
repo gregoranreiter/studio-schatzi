@@ -1,22 +1,8 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ProjectCard from '../components/ProjectCard.astro';
+import HomePageView from '../components/HomePageView.astro';
 import { getSiteContent } from '../lib/content';
 
 const { home } = await getSiteContent();
 ---
 
-<BaseLayout bodyClass="home-page">
-  <section class="hero">
-    <h1>{home.headline}</h1>
-  </section>
-
-  <section class="home-projects" aria-label="Projekte">
-    <div class="home-projects-grid">
-      {home.projects.map(({ project, placement }) => (
-        <ProjectCard project={project} class={`home-project--${placement}`} />
-      ))}
-    </div>
-    <a class="text-link pill-link archive-link" href="/projekte">Alle Projekte ansehen</a>
-  </section>
-</BaseLayout>
+<HomePageView home={home} />

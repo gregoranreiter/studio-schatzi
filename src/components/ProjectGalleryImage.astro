@@ -1,0 +1,10 @@
+---
+import type {ProjectImage} from '../lib/content/types';
+interface Props {image: ProjectImage}
+const {image} = Astro.props;
+---
+<figure class:list={['gallery-item', image.format && `gallery-item--${image.format}`]}>
+  <img crossorigin="anonymous" src={image.src} srcset={image.srcset}
+    sizes={image.format === 'wide' ? '100vw' : '(max-width: 760px) 100vw, 50vw'}
+    width={image.width} height={image.height} alt={image.alt} loading="lazy" decoding="async" />
+</figure>

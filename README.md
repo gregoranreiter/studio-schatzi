@@ -1,6 +1,6 @@
 # Studio Schatzi
 
-The German portfolio website for Studio Schatzi, an independent design studio in Linz. Astro generates static HTML from a restrained Sanity content model; the editor is a separate custom Sanity Studio. Both outputs are packaged as Cloudflare Workers with static assets. There is no runtime database, analytics service, or contact-form backend.
+The German portfolio website for Studio Schatzi, an independent design studio in Linz. Astro generates static HTML from a restrained Sanity content model; the editor is a separate custom Sanity Studio. Both outputs are packaged as Cloudflare Workers with static assets. Only the two CMS preview routes render on demand, using the public pages’ shared Astro views. There is no runtime database, analytics service, or contact-form backend.
 
 ## Local development
 
@@ -26,6 +26,7 @@ If another pnpm version is already installed, use `corepack pnpm` in place of `p
 | `pnpm test` | Check header contrast, navigation, and service hover interactions. |
 | `pnpm build` | Validate CMS content, check types, generate the site, and write Cloudflare redirects. |
 | `pnpm cms:build` | Type-check and build the production Studio in `studio/dist/`. |
+| `pnpm test:preview` | Compare preview and public HTML using the built local Worker; run the build first. |
 | `pnpm preview` | Serve the production build locally. Run the build first. |
 
 GitHub Actions runs the same locked install and build for pushes to `main` and pull requests. A build does not publish the site.
@@ -101,7 +102,7 @@ Project and service slugs become URLs. Keep them stable once the site is publish
 
 ## Deployment
 
-The canonical domain is `https://www.studioschatzi.at`, configured in `astro.config.mjs`. `wrangler.jsonc` deploys the static site with directory indexes and `404.html`; `studio/wrangler.jsonc` deploys the editor with an SPA fallback. Security headers live in `public/_headers`, and CMS-managed redirects are generated into `dist/_redirects`.
+The canonical domain is `https://www.studioschatzi.at`, configured in `astro.config.mjs`. `wrangler.jsonc` deploys static public pages with directory indexes and `404.html`, plus the on-demand CMS preview renderer; `studio/wrangler.jsonc` deploys the editor with an SPA fallback. Security headers live in `public/_headers`, and CMS-managed redirects are generated into `dist/client/_redirects`.
 
 Use separate Cloudflare Workers for the site and Studio. The domain currently remains at World4You and must not be moved until its mail DNS records are preserved. Follow [the CMS and hosting handover](docs/cms-hosting-handover.md) for account authorization, Workers Builds, deploy hooks, Access, domains, DNS, and rollback.
 

@@ -1,6 +1,6 @@
 # CMS and hosting handover
 
-Status date: 4 September 2026
+Status date: 11 September 2026
 
 Editors should start with the [CMS editor guide](cms-editor-guide.md). This document covers technical operation, hosting, and recovery.
 
@@ -11,7 +11,7 @@ Editors should start with the [CMS editor guide](cms-editor-guide.md). This docu
 - The existing five projects, four services, four singleton pages, 30 project images, and seven client logos have been migrated.
 - The Studio schema, visual array editors, and production Studio bundle are implemented in `studio/`.
 - The Astro site reads published Sanity content at build time and fails a production build when required content or references are invalid.
-- Two static Cloudflare Worker packages are configured: `studio-schatzi-site` and `studio-schatzi-cms`.
+- Two Cloudflare Worker packages are configured: `studio-schatzi-site` and `studio-schatzi-cms`.
 - The site and Studio both pass Wrangler dry-run packaging.
 - Both packages have been deployed for review to the dedicated Cloudflare account **Studio Schatzi**, originally claimed from a temporary account:
   - Site: `https://studio-schatzi-site.fragrant-buffer.workers.dev`
@@ -43,23 +43,21 @@ Sanity production dataset ── webhook ──► Cloudflare deploy hook
 Repository change ──► Cloudflare Workers Builds ──► site and/or Studio Worker
 ```
 
-There is no database or application server. Visitors receive static HTML, CSS, JavaScript, and Sanity CDN images. Publishing content starts a fresh static build; it does not add runtime CMS traffic to the site.
+There is no database. Public website visitors receive static HTML, CSS, JavaScript, and Sanity CDN images; only the CMS preview routes use the Worker renderer. Publishing content starts a fresh static build; it does not add runtime CMS traffic to the site.
 
 ## Editorial model
 
-The Studio intentionally exposes only decisions that exist in the design.
+### Website preview implementation (11 September 2026)
 
-| Area | Maintained content | Guardrails and representation |
-| --- | --- | --- |
-| Startseite | Headline and selected projects | Maximum six; project thumbnails are shown in the actual full/left/right four-column placement. |
-| Projekte | Title, URL slug, summary, description, service list, cover, gallery, related projects, archive order | Service scope is an array; cover and gallery images require alt text; gallery cards show the real wide/half/portrait composition; exactly two related projects. |
-| Leistungen | Headline, chapters, project cases, order | Cases reference published projects and their sequence matches the website. |
-| Studio | Headline and an ordered content array | A text block is one restrained Portable Text field; image blocks are either full width or right-aligned across three columns. |
-| Kontakt | Email, phone, address, social links | Social links are a flexible ordered array of label plus URL. |
-| Kundenlogos | Logo file, client name, relative width | SVG, PNG, and WebP files are accepted; relative width controls their visual scale. |
-| Weiterleitungen | Old path, new path, redirect status | Generated into Cloudflare's `_redirects` file during each site build; duplicates, self-links, and invalid paths fail the build. |
+Homepage and project document layouts now place the complete editor next to an iframe. The iframe is unmounted below 800px of document-pane width or 1000px of browser width, so mobile CMS sessions load no preview and open no preview content subscriptions.
 
-Slug fields should be treated as stable after launch. If a project or service URL must change, publish a redirect before or together with the slug change.
+The public website routes and CMS remain static. Only `/cms-preview/home/` and `/cms-preview/project/` render on demand through the Cloudflare Astro adapter. Each draft update posts a bounded, validated content snapshot and renders the same `HomePageView.astro` or `ProjectPageView.astro` as the public routes, including their layout, CSS and scripts. The iframe preserves scrolling but blocks links, menu controls, forms, keyboard activation and popups. Its document is selected exclusively by the CMS editor.
+
+The authenticated Studio reads homepage/project documents, resolves referenced drafts and overlays the current editor value. Draft content is passed only to the configured iframe origin after a source/origin/session-checked handshake, then submitted to the same-origin renderer. No Sanity token is sent. Requests are not stored, response caching is disabled and previews are marked noindex. There is no server-side Sanity draft query, session store or database. The site allows framing only by the specified Studio Schatzi CMS origins; changing a CMS domain requires updating the CSP and `src/lib/preview/protocol.ts`.
+
+Maintenance: change page markup only in the shared page views and their components, and image/content mapping in `src/lib/content/project.ts`. Keep preview-specific code limited to draft transport, document selection and interaction locking. Run `pnpm test`, `pnpm build`, `pnpm cms:build`, then `pnpm test:preview`. CI runs this parity check automatically against the built local Worker; it needs published Sanity content but no token. For an already-running dev server, use `PREVIEW_TEST_URL=http://127.0.0.1:4321 pnpm test`. The integration check compares homepage and project main HTML against the public routes, so a separate preview layout cannot silently diverge. CMS-only incomplete drafts intentionally have empty-field/image fallbacks. Site images must keep `crossorigin="anonymous"` so adaptive navigation can sample CDN image pixels. The following website origins were added to Sanity CORS **without credentials** on 11 September 2026: `http://127.0.0.1:4321`, `http://localhost:4321`, `https://studio-schatzi-site.fragrant-buffer.workers.dev`, and `https://www.studioschatzi.at`. New website preview domains also need an exact, credential-free CORS entry.
+
+Run both `pnpm dev` and `pnpm cms:dev` locally. `SANITY_STUDIO_PREVIEW_URL` can override the site origin; defaults are `http://127.0.0.1:4321` locally and the existing site Worker when hosted. Deploy the website before the CMS. The `/cms-preview/*` routes must keep `assets.run_worker_first` enabled so Cloudflare forwards GET and POST requests to the renderer instead of its static 404 handler. CMS deploys explicitly select `studio/wrangler.jsonc` to avoid inheriting the website adapter’s generated deployment configuration. Public assets now build to `dist/client`; the adapter generates the Worker/configuration under `dist/server` and Wrangler follows its generated deployment configuration. The preview consumes Worker requests; it requires neither a paid Sanity feature nor an additional Sanity API token.
 
 ## Local operation
 
@@ -109,7 +107,7 @@ From the repository root:
 pnpm build
 pnpm exec wrangler deploy
 pnpm cms:build
-pnpm --dir studio exec wrangler deploy
+pnpm --dir studio exec wrangler deploy --config wrangler.jsonc
 ```
 
 Expected Worker names are fixed by the two `wrangler.jsonc` files:
@@ -132,7 +130,7 @@ Connect the same Git repository to two separate Workers Builds projects. Keep th
 | Worker | Build command | Deploy command |
 | --- | --- | --- |
 | `studio-schatzi-site` | `pnpm build` | `pnpm exec wrangler deploy` |
-| `studio-schatzi-cms` | `pnpm cms:build` | `pnpm --dir studio exec wrangler deploy` |
+| `studio-schatzi-cms` | `pnpm cms:build` | `pnpm --dir studio exec wrangler deploy --config wrangler.jsonc` |
 
 Use `main` as the production branch. Non-production branches use the corresponding `wrangler versions upload` command and do not replace production. The website build reads the public Sanity dataset and needs no secret environment variables. These triggers are configured and verified; future pushes to GitHub start both builds.
 

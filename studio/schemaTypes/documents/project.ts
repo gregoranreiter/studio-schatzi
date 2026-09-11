@@ -1,6 +1,5 @@
 import {ProjectsIcon} from '@sanity/icons/Projects'
 import {defineArrayMember, defineField, defineType} from 'sanity'
-import {GalleryInput} from '../../studioComponents/GalleryInput'
 
 export const project = defineType({
   name: 'project',
@@ -49,7 +48,6 @@ export const project = defineType({
       name: 'gallery',
       title: 'Galerie',
       type: 'array',
-      components: {input: GalleryInput},
       of: [defineArrayMember({type: 'projectImage'})],
       validation: (rule) => rule.required().min(1),
     }),
